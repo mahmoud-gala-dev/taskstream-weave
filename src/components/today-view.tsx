@@ -51,6 +51,9 @@ export function TodayView() {
     };
   }, [items, dayStart]);
 
+  const nextUp = buckets.overdue[0] ?? buckets.today[0] ?? buckets.upcoming[0] ?? null;
+  const tableRows = [...buckets.overdue, ...buckets.today, ...buckets.upcoming].slice(0, 12);
+
   const todaysSessions = sessions.filter((s) => (s.stoppedAt ?? now) >= dayStart);
   const trackedToday = todaysSessions.reduce((acc, s) => acc + elapsedSeconds(s, now), 0);
   const roundsToday = todaysSessions.filter((s) => s.title.endsWith("— focus round")).length;
@@ -66,6 +69,31 @@ export function TodayView() {
         <Stat label={t("today.roundsToday")} value={String(roundsToday)} />
         <Stat label={t("dashboard.runningSessions")} value={String(sessions.filter((s) => s.status === "running").length)} />
       </div>
+
+      <section className="mt-6 rounded-xl border border-primary/40 bg-card p-4">
+        <h2 className="text-sm font-semibold">{t("today.nextRound")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {nextUp ? t("today.nextIs", { title: nextUp.title }) : t("today.nothingLate")}
+        </p>
+        {nextUp ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                pomodoro.setTaskId(nextUp.id);
+                void pomodoro.start();
+              }}
+            >
+              {t("today.startNext")}
+            </Button>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/item/$itemId" params={{ itemId: nextUp.id }}>
+                {t("today.openTask")}
+              </Link>
+            </Button>
+          </div>
+        ) : null}
+      </section>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[2fr_1fr]">
         <section className="rounded-xl border border-border bg-card p-4">
@@ -113,19 +141,56 @@ export function TodayView() {
             <p className="mt-2 text-sm text-muted-foreground">{t("today.noNotes")}</p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap gap-3 text-sm">
+          <div className="mt-6 text-sm">
             <Link to="/report" className="text-primary hover:underline">
-              {t("nav.report")}
-            </Link>
-            <Link to="/daily" className="text-primary hover:underline">
-              {t("nav.daily")}
-            </Link>
-            <Link to="/calendar" className="text-primary hover:underline">
-              {t("nav.calendar")}
+              {t("today.moreReports")}
             </Link>
           </div>
         </section>
       </div>
+
+      <section className="mt-6 rounded-xl border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">{t("today.taskTable")}</h2>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-start text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="p-2 text-start font-medium">{t("today.colTask")}</th>
+                <th className="p-2 text-start font-medium">{t("today.colDue")}</th>
+                <th className="p-2 text-start font-medium">{t("today.colPriority")}</th>
+                <th className="p-2 text-start font-medium">{t("today.colRounds")}</th>
+                <th className="p-2 text-start font-medium">{t("today.colProgress")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((i) => (
+                <tr key={i.id} className="border-t border-border">
+                  <td className="max-w-[18rem] truncate p-2">
+                    <Link to="/item/$itemId" params={{ itemId: i.id }} className="hover:underline">
+                      {i.title}
+                    </Link>
+                  </td>
+                  <td className="p-2 text-muted-foreground" dir="ltr">
+                    {i.dueDate ? new Date(i.dueDate).toLocaleDateString() : "—"}
+                  </td>
+                  <td className="p-2 text-muted-foreground">
+                    {t(`priority.${i.priority ?? "normal"}` as "priority.low")}
+                  </td>
+                  <td className="p-2 text-muted-foreground" dir="ltr">
+                    {i.estimatedRounds ?? "—"}
+                  </td>
+                  <td className="p-2 text-muted-foreground" dir="ltr">
+                    {i.progress ?? 0}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!tableRows.length ? (
+          <p className="mt-3 text-sm text-muted-foreground">{t("today.noDue")}</p>
+        ) : null}
+      </section>
     </div>
   );
 }
