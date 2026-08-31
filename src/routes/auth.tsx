@@ -63,13 +63,20 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
+      <AuthBackdrop />
+      <div className="relative z-10 grid w-full max-w-4xl items-center gap-10 lg:grid-cols-2">
+        <section className="hidden lg:block">
+          <AuthArtwork />
+        </section>
+
+        <div className="w-full rounded-2xl border border-border/70 bg-card/80 p-6 shadow-xl backdrop-blur-md sm:p-8">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t("auth.kicker")}</p>
         <h1 className="mt-1 text-2xl font-semibold">{t("auth.title")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {t("auth.subtitle")}
         </p>
+
 
         <form onSubmit={submit} className="mt-8 space-y-4">
           <div className="space-y-1.5">
