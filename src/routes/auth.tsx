@@ -133,7 +133,115 @@ function AuthPage() {
             {mode === "reset" ? t("auth.backToSignIn") : t("auth.forgotPassword")}
           </button>
         </div>
+        </div>
       </div>
     </div>
   );
 }
+
+/** Soft animated gradient orbs behind the card. */
+function AuthBackdrop() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div className="absolute -left-24 -top-24 size-80 animate-pulse rounded-full bg-primary/20 blur-3xl" />
+      <div className="absolute -bottom-32 -right-16 size-96 rounded-full bg-primary/10 blur-3xl" />
+      <svg className="absolute inset-0 size-full opacity-[0.07]" aria-hidden>
+        <defs>
+          <pattern id="auth-grid" width="36" height="36" patternUnits="userSpaceOnUse">
+            <path d="M36 0H0V36" fill="none" stroke="currentColor" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#auth-grid)" />
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * Animated SVG that tells the product story: a work table whose rows fill in,
+ * a focus ring counting down and a rising progress line.
+ */
+function AuthArtwork() {
+  return (
+    <svg
+      viewBox="0 0 420 340"
+      role="img"
+      aria-label="Animated illustration of a work table, a focus timer and a rising progress line"
+      className="w-full text-primary"
+    >
+      <g stroke="currentColor" fill="none">
+        <rect x="18" y="26" width="230" height="150" rx="14" strokeWidth="2" opacity="0.5" />
+        <line x1="18" y1="62" x2="248" y2="62" strokeWidth="1.5" opacity="0.35" />
+        <line x1="96" y1="26" x2="96" y2="176" strokeWidth="1.5" opacity="0.25" />
+        <line x1="172" y1="26" x2="172" y2="176" strokeWidth="1.5" opacity="0.25" />
+      </g>
+
+      {[0, 1, 2].map((row) => (
+        <rect
+          key={row}
+          x="32"
+          y={78 + row * 30}
+          height="12"
+          rx="6"
+          fill="currentColor"
+          opacity="0.35"
+        >
+          <animate
+            attributeName="width"
+            values="18;190;18"
+            dur="6s"
+            begin={`${row * 0.7}s`}
+            repeatCount="indefinite"
+          />
+        </rect>
+      ))}
+
+      <g transform="translate(330 96)">
+        <circle r="46" fill="none" stroke="currentColor" strokeWidth="6" opacity="0.15" />
+        <circle
+          r="46"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray="289"
+          transform="rotate(-90)"
+        >
+          <animate attributeName="stroke-dashoffset" values="289;0" dur="8s" repeatCount="indefinite" />
+        </circle>
+        <circle r="6" fill="currentColor">
+          <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite" />
+        </circle>
+      </g>
+
+      <path
+        d="M28 300 L108 268 L176 282 L250 220 L330 236 L400 178"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray="520"
+      >
+        <animate attributeName="stroke-dashoffset" values="520;0" dur="4s" repeatCount="indefinite" />
+      </path>
+
+      {[
+        { cx: 108, cy: 268 },
+        { cx: 250, cy: 220 },
+        { cx: 400, cy: 178 },
+      ].map((dot, i) => (
+        <circle key={dot.cx} cx={dot.cx} cy={dot.cy} r="4" fill="currentColor">
+          <animate
+            attributeName="opacity"
+            values="0.2;1;0.2"
+            dur="3s"
+            begin={`${i * 0.5}s`}
+            repeatCount="indefinite"
+          />
+        </circle>
+      ))}
+    </svg>
+  );
+}
+
