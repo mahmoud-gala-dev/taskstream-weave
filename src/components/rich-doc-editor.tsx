@@ -1,5 +1,6 @@
 import {
   AlignCenter,
+  AlignJustify,
   AlignLeft,
   AlignRight,
   Bold,
@@ -13,6 +14,7 @@ import {
   Link2,
   List,
   ListOrdered,
+  MoveVertical,
   Quote,
   Redo2,
   Strikethrough,
@@ -20,7 +22,7 @@ import {
   Underline,
   Undo2,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import React, { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { requestHighlight } from "@/components/page-highlighter";
@@ -50,6 +52,8 @@ export function RichDocEditor({
   const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const [dirty, setDirty] = useState(false);
+  const [lineHeight, setLineHeight] = useState(1.6);
+  const [blockSpacing, setBlockSpacing] = useState(8);
   const resolvedPlaceholder = placeholder ?? t("doc.placeholder");
   const resolvedLabel = label ?? t("doc.toolbar.label");
 
