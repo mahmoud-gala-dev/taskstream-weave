@@ -177,7 +177,15 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     if (!settings.notificationsEnabled) return;
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
     try {
-      new Notification(title, { body, tag: "work-os-focus" });
+      if (navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "WORK_OS_NOTIFY",
+          title,
+          options: { body, tag: "work-os-focus", icon: "/app-icon-192.png", data: { url: "/" } },
+        });
+      } else {
+        new Notification(title, { body, tag: "work-os-focus" });
+      }
     } catch {
       /* notifications are best-effort */
     }

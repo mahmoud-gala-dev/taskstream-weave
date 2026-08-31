@@ -112,6 +112,10 @@ export const tablesMessages = {
     "tables.statusBlocked": "Blocked",
     "tables.statusReview": "Review",
     "tables.statusDone": "Done",
+    "tables.taskCard": "Task",
+    "tables.topicCard": "Topic",
+    "tables.openTask": "Open task",
+    "tables.openTopic": "Open topic",
   },
   ar: {
     "tables.sectionsTitle": "الأقسام",
@@ -222,5 +226,9 @@ export const tablesMessages = {
     "tables.statusBlocked": "معلّق",
     "tables.statusReview": "مراجعة",
     "tables.statusDone": "منجز",
+    "tables.taskCard": "مهمة",
+    "tables.topicCard": "موضوع",
+    "tables.openTask": "فتح المهمة",
+    "tables.openTopic": "فتح الموضوع",
   },
 } as const;

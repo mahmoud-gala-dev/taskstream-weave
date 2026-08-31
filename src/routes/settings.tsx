@@ -267,6 +267,7 @@ function SettingsPage() {
           >
             {t("settings.allowNotifications")}
           </Button>
+          <p className="mt-2 text-xs text-muted-foreground">{t("settings.backgroundReminderHint")}</p>
         </div>
       </div>
 

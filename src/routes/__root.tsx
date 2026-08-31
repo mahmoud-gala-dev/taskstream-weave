@@ -16,6 +16,7 @@ import { WorkspaceProvider } from "../lib/workspace-store";
 import { PomodoroProvider } from "../lib/pomodoro-store";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { ReminderScheduler } from "../components/reminder-scheduler";
 
 
 function NotFoundComponent() {
@@ -142,12 +143,17 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/work-os-sw.js");
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SettingsProvider>
           <WorkspaceProvider>
             <PomodoroProvider>
+              <ReminderScheduler />
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
               <Outlet />
               <Toaster />

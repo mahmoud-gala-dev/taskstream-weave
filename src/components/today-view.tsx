@@ -7,7 +7,7 @@ import { useTick } from "@/hooks/useTick";
 import { COL, updateRecord, watchUserCollection } from "@/lib/db";
 import { useT } from "@/lib/i18n";
 import { usePomodoro } from "@/lib/pomodoro-store";
-import { elapsedSeconds, formatDuration, startOfToday } from "@/lib/sessions";
+import { completedRoundsForItem, elapsedSeconds, formatDuration, isPomodoroRound, startOfToday } from "@/lib/sessions";
 import { useWorkspace } from "@/lib/workspace-store";
 import type { PageNote, Priority, WorkItem } from "@/lib/types";
 
@@ -23,6 +23,7 @@ export function TodayView() {
   const now = useTick(1000);
   const pomodoro = usePomodoro();
   const [notes, setNotes] = useState<PageNote[]>([]);
+  const [selectedDay, setSelectedDay] = useState(() => startOfToday());
 
   useEffect(() => {
     if (!userId) return;
@@ -42,27 +43,53 @@ export function TodayView() {
       (a.dueDate ?? Infinity) - (b.dueDate ?? Infinity) ||
       rank[a.priority ?? "normal"] - rank[b.priority ?? "normal"];
     return {
-      overdue: open.filter((i) => i.dueDate && i.dueDate < dayStart).sort(by),
-      today: open.filter((i) => i.dueDate && i.dueDate >= dayStart && i.dueDate < dayStart + DAY).sort(by),
+      overdue: open.filter((i) => i.dueDate && i.dueDate < selectedDay).sort(by),
+      today: open.filter((i) => i.dueDate && i.dueDate >= selectedDay && i.dueDate < selectedDay + DAY).sort(by),
       upcoming: open
-        .filter((i) => !i.dueDate || i.dueDate >= dayStart + DAY)
+        .filter((i) => !i.dueDate || i.dueDate >= selectedDay + DAY)
         .sort(by)
         .slice(0, 6),
     };
-  }, [items, dayStart]);
+  }, [items, selectedDay]);
 
   const nextUp = buckets.overdue[0] ?? buckets.today[0] ?? buckets.upcoming[0] ?? null;
   const tableRows = [...buckets.overdue, ...buckets.today, ...buckets.upcoming].slice(0, 12);
 
   const todaysSessions = sessions.filter((s) => (s.stoppedAt ?? now) >= dayStart);
   const trackedToday = todaysSessions.reduce((acc, s) => acc + elapsedSeconds(s, now), 0);
-  const roundsToday = todaysSessions.filter((s) => s.title.endsWith("— focus round")).length;
+  const roundsToday = todaysSessions.filter(isPomodoroRound).length;
   const todayNotes = notes.filter((n) => (n.createdAt ?? 0) >= dayStart);
+  const calendarDays = Array.from({ length: 14 }, (_, index) => dayStart + index * DAY);
 
   return (
     <div className="mx-auto max-w-5xl p-6">
       <h1 className="text-2xl font-semibold">{t("today.title")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("today.subtitle")}</p>
+
+      <section className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border p-3">
+          <h2 className="text-sm font-semibold">{t("today.calendar")}</h2>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedDay(dayStart)}>{t("calendar.today")}</Button>
+        </div>
+        <div className="grid grid-cols-7 divide-x divide-border overflow-x-auto">
+          {calendarDays.map((date) => {
+            const due = items.filter((item) => item.type === "task" && item.dueDate && item.dueDate >= date && item.dueDate < date + DAY);
+            const selected = date === selectedDay;
+            return (
+              <button
+                key={date}
+                type="button"
+                onClick={() => setSelectedDay(date)}
+                className={`min-h-20 min-w-24 p-2 text-start transition-colors ${selected ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}
+              >
+                <span className="block text-[11px] text-muted-foreground">{new Date(date).toLocaleDateString(undefined, { weekday: "short" })}</span>
+                <span className="mt-1 block font-semibold">{new Date(date).getDate()}</span>
+                <span className="mt-2 block text-[11px]">{t("today.tasksDue", { count: due.length })}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Stat label={t("today.tracked")} value={formatDuration(trackedToday)} mono />
@@ -141,11 +168,6 @@ export function TodayView() {
             <p className="mt-2 text-sm text-muted-foreground">{t("today.noNotes")}</p>
           ) : null}
 
-          <div className="mt-6 text-sm">
-            <Link to="/report" className="text-primary hover:underline">
-              {t("today.moreReports")}
-            </Link>
-          </div>
         </section>
       </div>
 
@@ -177,7 +199,7 @@ export function TodayView() {
                     {t(`priority.${i.priority ?? "normal"}` as "priority.low")}
                   </td>
                   <td className="p-2 text-muted-foreground" dir="ltr">
-                    {i.estimatedRounds ?? "—"}
+                    {Math.max(0, (i.estimatedRounds ?? 0) - completedRoundsForItem(sessions, i.id))}
                   </td>
                   <td className="p-2 text-muted-foreground" dir="ltr">
                     {i.progress ?? 0}%

@@ -26,6 +26,8 @@ export const todayMessages = {
     "today.pause": "Pause",
     "today.reset": "Reset",
     "today.reports": "Reports",
+    "today.calendar": "Due-date calendar",
+    "today.tasksDue": "{count} due",
 
     "capture.open": "Quick capture",
     "capture.title": "Quick capture",
@@ -39,6 +41,7 @@ export const todayMessages = {
     "capture.save": "Capture",
     "capture.saved": "Captured.",
     "capture.failed": "Could not save that.",
+    "capture.lateRound": "Late: {title} · {rounds} rounds left",
 
     "plan.due": "Due date",
     "plan.priority": "Priority",
@@ -98,6 +101,8 @@ export const todayMessages = {
     "today.pause": "إيقاف مؤقّت",
     "today.reset": "تصفير",
     "today.reports": "التقارير",
+    "today.calendar": "تقويم الاستحقاق",
+    "today.tasksDue": "{count} مستحقة",
 
     "capture.open": "التقاط سريع",
     "capture.title": "التقاط سريع",
@@ -111,6 +116,7 @@ export const todayMessages = {
     "capture.save": "التقاط",
     "capture.saved": "تم الالتقاط.",
     "capture.failed": "تعذّر الحفظ.",
+    "capture.lateRound": "متأخرة: {title} · متبقي {rounds} جولات",
 
     "plan.due": "تاريخ الاستحقاق",
     "plan.priority": "الأولوية",
