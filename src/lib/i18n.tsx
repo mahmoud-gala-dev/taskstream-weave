@@ -6,6 +6,7 @@ import { itemMessages } from "@/lib/i18n.extra.item";
 import { optimizerMessages } from "@/lib/i18n.extra.optimizer";
 import { tablesMessages } from "@/lib/i18n.extra.tables";
 import { uiMessages } from "@/lib/i18n.extra.ui";
+import { shortcutsMessages } from "@/lib/i18n.extra.shortcuts";
 import { reportMessages } from "@/lib/i18n.extra.report";
 import { todayMessages } from "@/lib/i18n.extra.today";
 import { useSettings } from "@/lib/settings-store";
@@ -387,6 +388,7 @@ export const messages = {
     ...uiMessages.en,
     ...reportMessages.en,
     ...todayMessages.en,
+    ...shortcutsMessages.en,
     ...goalsMessages.en,
   },
   ar: {
@@ -398,6 +400,7 @@ export const messages = {
     ...uiMessages.ar,
     ...reportMessages.ar,
     ...todayMessages.ar,
+    ...shortcutsMessages.ar,
     ...goalsMessages.ar,
   },
 } as const;

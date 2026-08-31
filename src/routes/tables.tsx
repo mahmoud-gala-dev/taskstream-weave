@@ -1764,6 +1764,9 @@ function ItemCard({
             ))}
           </ContextMenuSubContent>
         </ContextMenuSub>
+        <ContextMenuItem onClick={() => onSetStyle({ color: null, icon: null })}>
+          {t("tables.clearCellStyle")}
+        </ContextMenuItem>
         {otherTables.length ? (
           <ContextMenuSub>
             <ContextMenuSubTrigger>{t("tables.addToAnotherTable")}</ContextMenuSubTrigger>
