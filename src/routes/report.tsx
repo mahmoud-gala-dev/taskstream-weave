@@ -103,6 +103,12 @@ function ReportPage() {
         {t("report.updated", { time: new Date(report.updatedAt).toLocaleTimeString() })}
       </p>
 
+      <p className="mt-2">
+        <Link to="/calendar" className="text-sm text-primary underline-offset-4 hover:underline">
+          {t("calendar.openCalendar")}
+        </Link>
+      </p>
+
       <StatStrip
         stats={[
           { label: t("report.rounds"), value: report.rounds },

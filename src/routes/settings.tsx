@@ -96,14 +96,38 @@ function SettingsPage() {
           <select
             id="theme"
             value={settings.theme}
-            onChange={(e) => update({ theme: e.target.value as "light" | "dark" | "system" })}
+            onChange={(e) =>
+              update({ theme: e.target.value as "light" | "dark" | "system" | "auto" })
+            }
             className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
           >
             <option value="system">{t("settings.themeSystem")}</option>
+            <option value="auto">{t("appearance.themeAuto")}</option>
             <option value="light">{t("settings.themeLight")}</option>
             <option value="dark">{t("settings.themeDark")}</option>
           </select>
         </Field>
+
+        {settings.theme === "auto" ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Number
+              id="nightStartHour"
+              label={t("appearance.nightStart")}
+              value={settings.nightStartHour}
+              min={0}
+              max={23}
+              onChange={(nightStartHour) => update({ nightStartHour })}
+            />
+            <Number
+              id="nightEndHour"
+              label={t("appearance.nightEnd")}
+              value={settings.nightEndHour}
+              min={0}
+              max={23}
+              onChange={(nightEndHour) => update({ nightEndHour })}
+            />
+          </div>
+        ) : null}
 
         <Field id="density" label={t("settings.density")}>
           <select
