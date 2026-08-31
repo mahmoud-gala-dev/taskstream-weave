@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
+import { DEFAULT_NIGHT_CITY, isCityNight } from "@/lib/night-hours";
 import { COL, createRecord, updateRecord, watchUserCollection } from "@/lib/db";
 import type { Base } from "@/lib/types";
 
@@ -43,6 +44,7 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
   density: "comfortable",
   nightStartHour: 18,
   nightEndHour: 6,
+  nightCity: DEFAULT_NIGHT_CITY,
   fontFamily: "sans",
   fontScale: 100,
   timerInSidebar: true,
