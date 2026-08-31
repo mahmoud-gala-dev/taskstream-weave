@@ -25,6 +25,7 @@ import { useEffect, type ReactNode } from "react";
 import { GlobalContextMenu } from "@/components/global-context-menu";
 import { PageHighlighter } from "@/components/page-highlighter";
 import { PageStickyNotes } from "@/components/page-sticky-notes";
+import { ShortcutsPanel } from "@/components/shortcuts-panel";
 import { QuickCapture } from "@/components/quick-capture";
 import { Button } from "@/components/ui/button";
 
@@ -136,6 +137,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mt-auto space-y-2 pt-4">
           <p className="truncate text-xs text-muted-foreground">{user.email}</p>
           <DarkModeToggle />
+          <ShortcutsPanel />
           <Button variant="outline" size="sm" className="w-full" onClick={() => void signOut()}>
             <LogOut className="size-4" /> {t("nav.signOut")}
           </Button>

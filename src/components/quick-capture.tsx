@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { COL, createRecord } from "@/lib/db";
 import { useT } from "@/lib/i18n";
 import { useWorkspace } from "@/lib/workspace-store";
+import { useSettings } from "@/lib/settings-store";
 import { usePomodoro } from "@/lib/pomodoro-store";
 import { completedRoundsForItem } from "@/lib/sessions";
 import type { ItemType, PageNote, Priority, WorkItem } from "@/lib/types";
@@ -20,6 +21,8 @@ export function QuickCapture() {
   const t = useT();
   const { userId, items, sessions } = useWorkspace();
   const pomodoro = usePomodoro();
+  const { settings } = useSettings();
+  const captureKey = (settings.captureShortcut || "n").toLowerCase();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<Kind>("task");
   const [text, setText] = useState("");
@@ -34,7 +37,7 @@ export function QuickCapture() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === "n") {
+      if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === captureKey) {
         event.preventDefault();
         setOpen(true);
       }
@@ -42,7 +45,7 @@ export function QuickCapture() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [captureKey]);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -89,7 +92,7 @@ export function QuickCapture() {
         onClick={() => setOpen(true)}
         className="fixed bottom-5 end-5 z-40 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
       >
-        {t("capture.open")} · Alt+N
+        {t("capture.open")} · Alt+{captureKey.toUpperCase()}
       </button>
     );
   }
