@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// Every document is owned by exactly one user. Reads and writes require an
+// authenticated user whose uid matches the document's userId, and userId can
+// never be changed after creation.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(data) {
+      return signedIn() && data.userId == request.auth.uid;
+    }
+
+    match /{collection}/{docId} {
+      allow read: if owns(resource.data)
+        && collection in [
+          'sections', 'tables', 'rows', 'columns', 'cells', 'items',
+          'placements', 'subtasks', 'notes', 'pageNotes', 'pageHighlights', 'links', 'attachments',
+          'workSessions', 'activityLogs', 'settings'
+        ];
+
+      allow create: if owns(request.resource.data)
+        && collection in [
+          'sections', 'tables', 'rows', 'columns', 'cells', 'items',
+          'placements', 'subtasks', 'notes', 'pageNotes', 'pageHighlights', 'links', 'attachments',
+          'workSessions', 'activityLogs', 'settings'
+        ];
+
+      allow update: if owns(resource.data)
+        && owns(request.resource.data)
+        && request.resource.data.userId == resource.data.userId;
+
+      allow delete: if owns(resource.data);
+    }
+  }
+}
