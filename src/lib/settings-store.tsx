@@ -178,8 +178,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     root.dir = settings.language === "ar" ? "rtl" : "ltr";
     const dark =
       settings.theme === "dark" ||
-      (settings.theme === "auto" &&
-        isNightHour(settings.nightStartHour, settings.nightEndHour, new Date(minuteTick))) ||
+      (settings.theme === "auto" && isNightNow(settings, new Date(minuteTick))) ||
       (settings.theme === "system" &&
         typeof window !== "undefined" &&
         window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -194,6 +193,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       fontScale: settings.fontScale,
       nightStartHour: settings.nightStartHour,
       nightEndHour: settings.nightEndHour,
+      nightCity: settings.nightCity,
     });
   }, [
     settings.language,
@@ -203,6 +203,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     settings.fontScale,
     settings.nightStartHour,
     settings.nightEndHour,
+    settings.nightCity,
     minuteTick,
   ]);
 
