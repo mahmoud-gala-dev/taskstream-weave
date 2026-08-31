@@ -39,6 +39,7 @@ export const todayMessages = {
     "capture.save": "Capture",
     "capture.saved": "Captured.",
     "capture.failed": "Could not save that.",
+    "capture.lateRound": "Late: {title} · {rounds} rounds left",
 
     "plan.due": "Due date",
     "plan.priority": "Priority",
@@ -111,6 +112,7 @@ export const todayMessages = {
     "capture.save": "التقاط",
     "capture.saved": "تم الالتقاط.",
     "capture.failed": "تعذّر الحفظ.",
+    "capture.lateRound": "متأخرة: {title} · متبقي {rounds} جولات",
 
     "plan.due": "تاريخ الاستحقاق",
     "plan.priority": "الأولوية",

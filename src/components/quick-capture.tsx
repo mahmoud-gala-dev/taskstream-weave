@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { COL, createRecord } from "@/lib/db";
 import { useT } from "@/lib/i18n";
 import { useWorkspace } from "@/lib/workspace-store";
+import { usePomodoro } from "@/lib/pomodoro-store";
+import { completedRoundsForItem } from "@/lib/sessions";
 import type { ItemType, PageNote, Priority, WorkItem } from "@/lib/types";
 
 type Kind = ItemType | "note";
@@ -16,7 +18,8 @@ type Kind = ItemType | "note";
  */
 export function QuickCapture() {
   const t = useT();
-  const { userId } = useWorkspace();
+  const { userId, items, sessions } = useWorkspace();
+  const pomodoro = usePomodoro();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<Kind>("task");
   const [text, setText] = useState("");
@@ -25,6 +28,9 @@ export function QuickCapture() {
   const [estimate, setEstimate] = useState("");
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const overdue = items
+    .filter((item) => item.type === "task" && item.status !== "done" && item.dueDate && item.dueDate < Date.now())
+    .sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0))[0];
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -101,6 +107,19 @@ export function QuickCapture() {
       >
         <h2 className="text-sm font-semibold">{t("capture.title")}</h2>
         <p className="mt-1 text-xs text-muted-foreground">{t("capture.hint")}</p>
+        {overdue ? (
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs">
+            <span className="min-w-0 flex-1 truncate">
+              {t("capture.lateRound", {
+                title: overdue.title,
+                rounds: Math.max(0, (overdue.estimatedRounds ?? 0) - completedRoundsForItem(sessions, overdue.id)),
+              })}
+            </span>
+            <Button size="sm" variant="outline" onClick={() => { pomodoro.setTaskId(overdue.id); void pomodoro.start(); setOpen(false); }}>
+              {t("today.start")}
+            </Button>
+          </div>
+        ) : null}
 
         <div className="mt-3 flex gap-2">
           {(["task", "topic", "note"] as const).map((k) => (
