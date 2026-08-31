@@ -8,7 +8,11 @@ export type ReminderStyle = "toast" | "browser" | "both" | "off";
 
 export type Settings = Base & {
   language: "en" | "ar";
-  theme: "light" | "dark" | "system";
+  /** "auto" follows local clock (night hours), "system" follows the OS setting. */
+  theme: "light" | "dark" | "system" | "auto";
+  /** Hours (0-23) that count as night for the auto theme. */
+  nightStartHour: number;
+  nightEndHour: number;
   density: "compact" | "comfortable" | "large";
   /** Global UI font family and scale, applied to <html>. */
   fontFamily: "sans" | "serif" | "mono";
@@ -33,6 +37,8 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
   language: "en",
   theme: "system",
   density: "comfortable",
+  nightStartHour: 18,
+  nightEndHour: 6,
   fontFamily: "sans",
   fontScale: 100,
   timerInSidebar: true,
@@ -53,7 +59,16 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
  * very first paint of the next visit.
  */
 const LOCAL_KEY = "work-os:appearance";
-type Appearance = Pick<Settings, "language" | "theme" | "density" | "fontFamily" | "fontScale">;
+type Appearance = Pick<
+  Settings,
+  "language" | "theme" | "density" | "fontFamily" | "fontScale" | "nightStartHour" | "nightEndHour"
+>;
+
+/** True when the local clock is inside the configured night window. */
+export function isNightHour(start: number, end: number, at = new Date()): boolean {
+  const h = at.getHours();
+  return start <= end ? h >= start && h < end : h >= start || h < end;
+}
 
 function readLocalAppearance(): Partial<Appearance> {
   if (typeof window === "undefined") return {};
@@ -97,6 +112,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Restore the locally cached appearance before Firestore answers.
   useEffect(() => setLocal(readLocalAppearance()), []);
 
+  // Re-evaluate the auto (night) theme once a minute without a page reload.
+  const [minuteTick, setMinuteTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setMinuteTick(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     setDoc(null);
     if (!userId) return;
@@ -127,6 +149,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     root.dir = settings.language === "ar" ? "rtl" : "ltr";
     const dark =
       settings.theme === "dark" ||
+      (settings.theme === "auto" &&
+        isNightHour(settings.nightStartHour, settings.nightEndHour, new Date(minuteTick))) ||
       (settings.theme === "system" &&
         typeof window !== "undefined" &&
         window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -139,6 +163,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       density: settings.density,
       fontFamily: settings.fontFamily,
       fontScale: settings.fontScale,
+      nightStartHour: settings.nightStartHour,
+      nightEndHour: settings.nightEndHour,
     });
   }, [
     settings.language,
@@ -146,6 +172,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     settings.density,
     settings.fontFamily,
     settings.fontScale,
+    settings.nightStartHour,
+    settings.nightEndHour,
+    minuteTick,
   ]);
 
   const value = useMemo<Ctx>(
