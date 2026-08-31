@@ -54,6 +54,29 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!loading && !user) void navigate({ to: "/auth" });
   }, [loading, user, navigate]);
 
+  // Global shortcuts: Alt+F/T/P/D/S jump between the main surfaces. They are
+  // ignored while typing so they never swallow real text input.
+  useEffect(() => {
+    const targets: Record<string, string> = {
+      f: "/focus",
+      t: "/tasks",
+      p: "/topics",
+      d: "/documentation",
+      s: "/search",
+    };
+    function onKeyDown(event: KeyboardEvent) {
+      if (!event.altKey || event.ctrlKey || event.metaKey) return;
+      const el = event.target as HTMLElement | null;
+      if (el?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el?.tagName ?? "")) return;
+      const to = targets[event.key.toLowerCase()];
+      if (!to) return;
+      event.preventDefault();
+      void navigate({ to });
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [navigate]);
+
   if (loading || !user) {
     return (
       <div className="min-h-screen bg-background p-8">

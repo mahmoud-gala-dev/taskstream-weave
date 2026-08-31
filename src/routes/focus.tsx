@@ -44,6 +44,8 @@ export const Route = createFileRoute("/focus")({
 
 type Phase = "focus" | "break" | "longBreak";
 
+const POMODORO_KEY = "work-os:pomodoro";
+
 function FocusPage() {
   const { settings } = useSettings();
   const t = useT();
@@ -65,6 +67,42 @@ function FocusPage() {
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [remainingWhenPaused, setRemainingWhenPaused] = useState<number | null>(null);
   const notifiedRef = useRef<{ warn: boolean; end: boolean }>({ warn: false, end: false });
+  const [restored, setRestored] = useState(false);
+
+  // The timer survives a refresh: only timestamps are stored, so a running
+  // round keeps counting down while the tab is closed.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(POMODORO_KEY);
+      if (saved) {
+        const state = JSON.parse(saved) as {
+          phase?: Phase;
+          round?: number;
+          endsAt?: number | null;
+          remainingWhenPaused?: number | null;
+          taskId?: string;
+        };
+        if (state.phase) setPhase(state.phase);
+        if (state.round) setRound(state.round);
+        if (typeof state.endsAt === "number" && state.endsAt > Date.now()) setEndsAt(state.endsAt);
+        if (typeof state.remainingWhenPaused === "number") setRemainingWhenPaused(state.remainingWhenPaused);
+        if (state.taskId && !search.item) setTaskId(state.taskId);
+      }
+    } catch {
+      window.localStorage.removeItem(POMODORO_KEY);
+    } finally {
+      setRestored(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!restored) return;
+    window.localStorage.setItem(
+      POMODORO_KEY,
+      JSON.stringify({ phase, round, endsAt, remainingWhenPaused, taskId }),
+    );
+  }, [restored, phase, round, endsAt, remainingWhenPaused, taskId]);
 
   const open = useMemo(() => items.filter((i) => i.status !== "done"), [items]);
   const task = open.find((i) => i.id === taskId) ?? null;

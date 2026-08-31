@@ -2,9 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { Highlight } from "@/components/highlight-match";
+import { Pagination, usePagination } from "@/components/list-pagination";
 import { Input } from "@/components/ui/input";
 import { COL, watchUserCollection } from "@/lib/db";
-import type { Attachment, LinkRecord, Note } from "@/lib/types";
+import type { Attachment, LinkRecord, Note, PageNote } from "@/lib/types";
 import { useWorkspace } from "@/lib/workspace-store";
 import { useT, type MessageKey } from "@/lib/i18n";
 
@@ -39,6 +41,7 @@ function SearchPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [links, setLinks] = useState<LinkRecord[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [pageNotes, setPageNotes] = useState<PageNote[]>([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -49,6 +52,7 @@ function SearchPage() {
     add(watchUserCollection<Note>(COL.notes, userId, (r) => active && setNotes(r)));
     add(watchUserCollection<LinkRecord>(COL.links, userId, (r) => active && setLinks(r)));
     add(watchUserCollection<Attachment>(COL.attachments, userId, (r) => active && setAttachments(r)));
+    add(watchUserCollection<PageNote>(COL.pageNotes, userId, (r) => active && setPageNotes(r)));
     return () => {
       active = false;
       unsubs.forEach((u) => u());
@@ -76,8 +80,15 @@ function SearchPage() {
     attachments
       .filter((a) => match(a.filename))
       .forEach((a) => out.push({ key: `att-${a.id}`, kind: "Attachment", label: a.filename, itemId: a.itemId }));
-    return out.slice(0, 100);
-  }, [q, sections, tables, rows, columns, items, notes, links, attachments]);
+    pageNotes
+      .filter((n) => match(n.body))
+      .forEach((n) => out.push({ key: `page-note-${n.id}`, kind: "Note", label: n.body.slice(0, 90) }));
+    return out.slice(0, 300);
+  }, [q, sections, tables, rows, columns, items, notes, links, attachments, pageNotes]);
+
+
+
+  const { page, setPage, pageCount, pageRows, total } = usePagination(hits, 20);
 
   return (
     <div className="p-6">
@@ -92,17 +103,19 @@ function SearchPage() {
       />
 
       <ul className="mt-5 max-w-2xl space-y-1">
-        {hits.map((h) => (
+        {pageRows.map((h) => (
           <li key={h.key} className="rounded-md border border-border p-2 text-sm">
             <span className="me-2 text-xs uppercase tracking-wide text-muted-foreground">
               {t(`kind.${h.kind}` as MessageKey)}
             </span>
             {h.itemId ? (
               <Link to="/item/$itemId" params={{ itemId: h.itemId }} className="hover:underline">
-                {h.label}
+                <Highlight text={h.label} term={q} />
               </Link>
             ) : (
-              <span>{h.label}</span>
+              <span>
+                <Highlight text={h.label} term={q} />
+              </span>
             )}
           </li>
         ))}
@@ -110,6 +123,10 @@ function SearchPage() {
           <p className="text-sm text-muted-foreground">{t("search.noMatches")}</p>
         ) : null}
       </ul>
+
+      <div className="max-w-2xl">
+        <Pagination page={page} pageCount={pageCount} onChange={setPage} total={total} />
+      </div>
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { FileText, Link2, Paperclip, StickyNote, Timer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Pagination, StatStrip, usePagination } from "@/components/list-pagination";
+import { Highlight } from "@/components/highlight-match";
+import { Input } from "@/components/ui/input";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
@@ -79,6 +81,7 @@ function DocumentationPage() {
   const t = useT();
   const { userId, items } = useWorkspace();
   const [range, setRange] = useState<Range>("today");
+  const [query, setQuery] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [links, setLinks] = useState<LinkRecord[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -165,8 +168,17 @@ function DocumentationPage() {
       })),
     ];
     const { from, to } = rangeStart(range);
-    return list.filter((e) => e.at >= from && e.at < to).sort((a, b) => b.at - a.at);
-  }, [notes, links, attachments, sessions, logs, range, titleOf, t]);
+    const term = query.trim().toLowerCase();
+    return list
+      .filter((e) => e.at >= from && e.at < to)
+      .filter(
+        (e) =>
+          !term ||
+          e.title.toLowerCase().includes(term) ||
+          (e.detail ?? "").toLowerCase().includes(term),
+      )
+      .sort((a, b) => b.at - a.at);
+  }, [notes, links, attachments, sessions, logs, range, query, titleOf, t]);
 
   const stats = useMemo(() => {
     const count = (kind: Entry["kind"]) => entries.filter((e) => e.kind === kind).length;
@@ -210,6 +222,14 @@ function DocumentationPage() {
           ))}
         </div>
 
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t("search.placeholder")}
+          aria-label={t("search.placeholder")}
+          className="max-w-md"
+        />
+
         <StatStrip stats={stats} />
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -229,9 +249,13 @@ function DocumentationPage() {
                 >
                   <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{e.title}</p>
+                    <p className="text-sm font-medium">
+                      <Highlight text={e.title} term={query} />
+                    </p>
                     {e.detail ? (
-                      <p className="truncate text-xs text-muted-foreground">{e.detail}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        <Highlight text={e.detail} term={query} />
+                      </p>
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
