@@ -146,10 +146,13 @@ function RootComponent() {
       <AuthProvider>
         <SettingsProvider>
           <WorkspaceProvider>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-            <Toaster />
+            <PomodoroProvider>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+              <Toaster />
+            </PomodoroProvider>
           </WorkspaceProvider>
+
 
         </SettingsProvider>
       </AuthProvider>
