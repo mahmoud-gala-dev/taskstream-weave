@@ -81,6 +81,7 @@ import {
 import { bySortOrder, orderAtEnd, orderForIndex } from "@/lib/order";
 import { ICONS, PALETTE, tint } from "@/lib/palette";
 import { startSession } from "@/lib/sessions";
+import { confirmToast } from "@/lib/confirm";
 import { readSnapshot } from "@/lib/table-snapshot";
 import type { ItemStatus, ItemType, Placement, TableCell, WorkItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -487,7 +488,7 @@ function TablesPage() {
     >
       <div
         className={cn(
-          "flex min-h-screen",
+          "work-os-arabic-surface flex min-h-screen",
           focusMode && "fixed inset-0 z-50 overflow-auto bg-background",
         )}
       >
@@ -613,7 +614,24 @@ function TablesPage() {
               <ContextMenu>
               <ContextMenuTrigger asChild>
               <div
-                className="overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-card/40 p-3 pb-4 shadow-sm"
+                tabIndex={0}
+                role="group"
+                aria-label={table.name}
+                className={cn(
+                  "work-os-table-scroll overscroll-x-contain rounded-xl border border-border bg-card/40 p-3 pb-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  // In focus mode the grid must not scroll sideways: columns fit the viewport.
+                  focusMode ? "overflow-x-hidden" : "overflow-x-auto",
+                )}
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+                  const node = event.currentTarget;
+                  if (node.scrollWidth <= node.clientWidth) return;
+                  const target = event.target as HTMLElement;
+                  // Let text inputs keep native caret movement.
+                  if (target.closest("input, textarea, [contenteditable='true']")) return;
+                  node.scrollLeft += event.key === "ArrowRight" ? 220 : -220;
+                  event.preventDefault();
+                }}
                 onDragOver={(event) => {
                   if (event.dataTransfer.types.includes("application/work-os-template")) {
                     event.preventDefault();
@@ -628,6 +646,7 @@ function TablesPage() {
                   if (template) void applyTemplate(template);
                 }}
                 onWheel={(event) => {
+                  if (focusMode) return;
                   if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
                   const node = event.currentTarget;
                   if (node.scrollWidth <= node.clientWidth) return;
@@ -636,9 +655,11 @@ function TablesPage() {
                 }}
               >
                 <div
-                  className="grid min-w-fit gap-2"
+                  className={cn("grid gap-2", focusMode ? "w-full" : "min-w-fit")}
                   style={{
-                    gridTemplateColumns: `10rem repeat(${Math.max(tableColumns.length, 1)}, minmax(15rem, 1fr))`,
+                    gridTemplateColumns: focusMode
+                      ? `8rem repeat(${Math.max(tableColumns.length, 1)}, minmax(0, 1fr))`
+                      : `10rem repeat(${Math.max(tableColumns.length, 1)}, minmax(15rem, 1fr))`,
                   }}
                 >
                   <div className="rounded-md bg-muted/40" />
@@ -1007,8 +1028,10 @@ function TableTab({
           <DropdownMenuItem
             className="text-destructive"
             onClick={() => {
-              if (window.confirm(t("tables.confirmDeleteTable")))
-                onDelete();
+              void confirmToast(t("tables.confirmDeleteTable"), {
+                confirmLabel: t("common.delete"),
+                cancelLabel: t("common.cancel"),
+              }).then((ok) => ok && onDelete());
             }}
           >
             {t("tables.deleteTable")}
@@ -1193,8 +1216,10 @@ function LineHeader({
   });
 
   function confirmDelete() {
-    if (window.confirm(t("tables.confirmDeleteLine", { kind: kindLabel })))
-      onDelete();
+    void confirmToast(t("tables.confirmDeleteLine", { kind: kindLabel }), {
+      confirmLabel: t("common.delete"),
+      cancelLabel: t("common.cancel"),
+    }).then((ok) => ok && onDelete());
   }
 
   const header = (
@@ -1406,7 +1431,7 @@ function Cell({
       )}
     >
       {cell?.icon ? (
-        <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        <p className="flex items-center gap-1 text-2xl leading-none">
           <span aria-hidden>{cell.icon}</span>
         </p>
       ) : null}
@@ -1644,7 +1669,10 @@ function ItemCard({
             <DropdownMenuItem
               className="text-destructive"
               onClick={() => {
-                if (window.confirm(t("tables.confirmDeleteItem", { title: item.title }))) onDelete();
+                void confirmToast(t("tables.confirmDeleteItem", { title: item.title }), {
+                  confirmLabel: t("common.delete"),
+                  cancelLabel: t("common.cancel"),
+                }).then((ok) => ok && onDelete());
               }}
             >
               {t("tables.deleteItem")}
@@ -1733,7 +1761,10 @@ function ItemCard({
         <ContextMenuItem
           className="text-destructive"
           onClick={() => {
-            if (window.confirm(t("tables.confirmDeleteItem", { title: item.title }))) onDelete();
+            void confirmToast(t("tables.confirmDeleteItem", { title: item.title }), {
+              confirmLabel: t("common.delete"),
+              cancelLabel: t("common.cancel"),
+            }).then((ok) => ok && onDelete());
           }}
         >
           <Trash2 /> {t("tables.deleteItem")}

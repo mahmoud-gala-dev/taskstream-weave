@@ -8,30 +8,40 @@ const MAX_BYTES = 600_000;
 
 export async function captureElement(el: HTMLElement): Promise<string> {
   const style = getComputedStyle(document.body);
-  return toJpeg(el, {
+  // Google Fonts stylesheets are cross-origin: inlining them throws and the
+  // capture silently produced nothing, so fonts are skipped on purpose.
+  const dataUrl = await toJpeg(el, {
     quality: 0.72,
     pixelRatio: 1,
     backgroundColor: style.backgroundColor || "#ffffff",
+    skipFonts: true,
     cacheBust: true,
   });
+  if (!dataUrl || dataUrl.length < 1000) throw new Error("snapshot-empty");
+  return dataUrl;
 }
 
 export function snapshotTooLarge(dataUrl: string): boolean {
   return dataUrl.length > MAX_BYTES;
 }
 
-export function saveSnapshot(dataUrl: string) {
+/** In-memory copy so a full localStorage never loses the pending snapshot. */
+let memorySnapshot: string | null = null;
+
+export function saveSnapshot(dataUrl: string): boolean {
+  memorySnapshot = dataUrl;
   try {
     window.localStorage.setItem(KEY, dataUrl);
+    return true;
   } catch {
-    /* storage may be full — snapshot is best effort */
+    return false;
   }
 }
 
 export function readSnapshot(): string | null {
   try {
-    return window.localStorage.getItem(KEY);
+    return window.localStorage.getItem(KEY) ?? memorySnapshot;
   } catch {
-    return null;
+    return memorySnapshot;
   }
 }

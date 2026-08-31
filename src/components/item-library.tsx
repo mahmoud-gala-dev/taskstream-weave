@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
+import { Pagination, StatStrip, usePagination } from "@/components/list-pagination";
 import { Input } from "@/components/ui/input";
 import type { ItemStatus, ItemType } from "@/lib/types";
 import { useWorkspace } from "@/lib/workspace-store";
@@ -45,10 +46,29 @@ export function ItemLibrary({
     [items, type, status, q],
   );
 
+  const all = useMemo(() => items.filter((i) => i.type === type), [items, type]);
+  const stats = useMemo(() => {
+    const done = all.filter((i) => i.status === "done").length;
+    const active = all.filter((i) => i.status === "in_progress").length;
+    const avg = all.length
+      ? Math.round(all.reduce((sum, i) => sum + (i.progress ?? 0), 0) / all.length)
+      : 0;
+    return [
+      { label: t("status.all"), value: all.length },
+      { label: t("status.in_progress"), value: active },
+      { label: t("status.done"), value: done },
+      { label: "Avg progress", value: `${avg}%` },
+    ];
+  }, [all, t]);
+
+  const { page, setPage, pageCount, pageRows, total } = usePagination(list, 10);
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold">{title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t(subtitleKey)}</p>
+
+      <StatStrip stats={stats} />
 
       <div className="mt-5 flex flex-wrap gap-2">
         <Input
@@ -73,7 +93,7 @@ export function ItemLibrary({
       </div>
 
       <ul className="mt-5 space-y-2">
-        {list.map((i) => {
+        {pageRows.map((i) => {
           const where = placements
             .filter((p) => p.itemId === i.id)
             .map((p) => tableName.get(p.tableId))
@@ -107,6 +127,8 @@ export function ItemLibrary({
           <p className="text-sm text-muted-foreground">{t("common.empty")}</p>
         ) : null}
       </ul>
+
+      <Pagination page={page} pageCount={pageCount} onChange={setPage} total={total} />
     </div>
   );
 }
