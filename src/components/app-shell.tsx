@@ -14,8 +14,9 @@ import {
   Sparkles,
   Sun,
   Table2,
-
   Tags,
+  Target,
+
   Timer,
   Wand2,
 } from "lucide-react";
