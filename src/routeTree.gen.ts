@@ -23,6 +23,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as TodayRouteImport } from './routes/today'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as ItemItemIdRouteImport } from './routes/item.$itemId'
 
@@ -96,6 +97,11 @@ const TasksRoute = TasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TodayRoute = TodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TopicsRoute = TopicsRouteImport.update({
   id: '/topics',
   path: '/topics',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
   '/tasks': typeof TasksRoute
+  '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
   '/tasks': typeof TasksRoute
+  '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
 }
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
   '/tasks': typeof TasksRoute
+  '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
 }
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tables'
     | '/tasks'
+    | '/today'
     | '/topics'
     | '/item/$itemId'
   fileRoutesByTo: FileRoutesByTo
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tables'
     | '/tasks'
+    | '/today'
     | '/topics'
     | '/item/$itemId'
   id:
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tables'
     | '/tasks'
+    | '/today'
     | '/topics'
     | '/item/$itemId'
   fileRoutesById: FileRoutesById
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TablesRoute: typeof TablesRoute
   TasksRoute: typeof TasksRoute
+  TodayRoute: typeof TodayRoute
   TopicsRoute: typeof TopicsRoute
   ItemItemIdRoute: typeof ItemItemIdRoute
 }
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/today': {
+      id: '/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof TodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/topics': {
       id: '/topics'
       path: '/topics'
@@ -370,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TablesRoute: TablesRoute,
   TasksRoute: TasksRoute,
+  TodayRoute: TodayRoute,
   TopicsRoute: TopicsRoute,
   ItemItemIdRoute: ItemItemIdRoute,
 }
