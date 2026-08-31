@@ -10,6 +10,9 @@ export type Settings = Base & {
   language: "en" | "ar";
   theme: "light" | "dark" | "system";
   density: "compact" | "comfortable" | "large";
+  /** Global UI font family and scale, applied to <html>. */
+  fontFamily: "sans" | "serif" | "mono";
+  fontScale: number;
   timerInSidebar: boolean;
   /** Pomodoro focus preferences. */
   focusMinutes: number;
@@ -30,6 +33,8 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
   language: "en",
   theme: "system",
   density: "comfortable",
+  fontFamily: "sans",
+  fontScale: 100,
   timerInSidebar: true,
   focusMinutes: 25,
   breakMinutes: 5,
@@ -41,6 +46,34 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
   reminderStyle: "both",
   focusDoneMessage: "Focus round complete on {task} — {minutes} min tracked.",
 };
+
+/**
+ * Appearance preferences are mirrored to localStorage so theme, font and size
+ * survive sign-out, a closed tab or a slow Firestore load and are applied on the
+ * very first paint of the next visit.
+ */
+const LOCAL_KEY = "work-os:appearance";
+type Appearance = Pick<Settings, "language" | "theme" | "density" | "fontFamily" | "fontScale">;
+
+function readLocalAppearance(): Partial<Appearance> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(LOCAL_KEY) ?? "{}") as Partial<Appearance>;
+  } catch {
+    return {};
+  }
+}
+
+function writeLocalAppearance(a: Appearance) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCAL_KEY, JSON.stringify(a));
+  } catch {
+    /* storage is best-effort */
+  }
+}
+
+
 
 
 
