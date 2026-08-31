@@ -41,7 +41,7 @@ const DAY = 86_400_000;
  */
 function ReportPage() {
   const t = useT();
-  const { items, sessions } = useWorkspace();
+  const { items, sessions, placements, tables } = useWorkspace();
 
   const report = useMemo(() => {
     const now = Date.now();
@@ -96,11 +96,40 @@ function ReportPage() {
         }))
         .sort((a, b) => Math.abs(b.actual - b.estimated) - Math.abs(a.actual - a.estimated))
         .slice(0, 12),
+      docs: items
+        .filter((i) => (i.descriptionHtml ?? "").replace(/<[^>]*>/g, "").trim().length > 0)
+        .map((i) => {
+          const text = (i.descriptionHtml ?? "").replace(/<[^>]*>/g, " ");
+          const placement = placements.find((pl) => pl.itemId === i.id);
+          const table = placement ? tables.find((tb) => tb.id === placement.tableId) : undefined;
+          return {
+            item: i,
+            words: text.split(/\s+/).filter(Boolean).length,
+            table: table?.name ?? null,
+            updatedAt: i.updatedAt ?? i.createdAt ?? 0,
+          };
+        })
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, 12),
+      goals: items
+        .filter((i) => i.type === "topic")
+        .map((topic) => {
+          const children = items.filter((i) => i.type === "task" && i.parentTopicId === topic.id);
+          return {
+            topic,
+            count: children.length,
+            avg: children.length
+              ? Math.round(children.reduce((n, c) => n + (c.progress ?? 0), 0) / children.length)
+              : 0,
+          };
+        })
+        .filter((g) => g.count > 0)
+        .sort((a, b) => Math.abs(b.topic.progress - b.avg) - Math.abs(a.topic.progress - a.avg)),
       tasks: rows("task"),
       topics: rows("topic"),
       updatedAt: now,
     };
-  }, [items, sessions]);
+  }, [items, sessions, placements, tables]);
 
   const maxRounds = Math.max(1, ...report.days.map((d) => d.rounds));
 
@@ -176,6 +205,68 @@ function ReportPage() {
           </ul>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">{t("report.noEstimates")}</p>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-xl border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">{t("report.goals")}</h2>
+        <p className="mt-1 text-xs text-muted-foreground">{t("report.goalsHint")}</p>
+        {report.goals.length ? (
+          <ul className="mt-3 space-y-2">
+            {report.goals.map(({ topic, count, avg }) => (
+              <li key={topic.id} className="rounded-lg border border-border p-2 text-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link to="/item/$itemId" params={{ itemId: topic.id }} className="min-w-0 flex-1 truncate hover:underline">
+                    {topic.title}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">{t("goals.taskCount", { count })}</span>
+                  <span className="text-xs text-muted-foreground" dir="ltr">
+                    {t("report.goalProgress")} {topic.progress ?? 0}% · {t("report.subtaskAvg")} {avg}%
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {(topic.progress ?? 0) >= avg ? t("report.gapAhead") : t("report.gapBehind")}
+                  </span>
+                </div>
+                <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted">
+                  <span className="block h-full rounded-full bg-primary" style={{ width: `${Math.min(100, topic.progress ?? 0)}%` }} />
+                </span>
+                <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-muted">
+                  <span className="block h-full rounded-full bg-primary/50" style={{ width: `${Math.min(100, avg)}%` }} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">{t("report.goalsNone")}</p>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-xl border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">{t("report.docs")}</h2>
+        <p className="mt-1 text-xs text-muted-foreground">{t("report.docsHint")}</p>
+        {report.docs.length ? (
+          <ul className="mt-3 space-y-2">
+            {report.docs.map(({ item, words, table, updatedAt }) => (
+              <li key={item.id}>
+                <Link
+                  to="/item/$itemId"
+                  params={{ itemId: item.id }}
+                  className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-2 text-sm transition-colors hover:border-primary/50"
+                >
+                  <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                  {table ? (
+                    <span className="text-xs text-muted-foreground">{t("report.docsTable", { table })}</span>
+                  ) : null}
+                  <span className="text-xs text-muted-foreground">{t("report.docsWords", { count: words })}</span>
+                  <span className="text-xs text-muted-foreground" dir="ltr">
+                    {t("report.docsUpdated", { date: new Date(updatedAt).toLocaleDateString() })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">{t("report.docsNone")}</p>
         )}
       </section>
 
