@@ -92,6 +92,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.uid ?? null;
   const [doc, setDoc] = useState<Settings | null>(null);
+  const [local, setLocal] = useState<Partial<Appearance>>({});
+
+  // Restore the locally cached appearance before Firestore answers.
+  useEffect(() => setLocal(readLocalAppearance()), []);
 
   useEffect(() => {
     setDoc(null);
@@ -112,8 +116,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   const settings = useMemo(
-    () => ({ ...DEFAULTS, ...(doc ? { ...doc } : {}) }),
-    [doc],
+    () => ({ ...DEFAULTS, ...local, ...(doc ? { ...doc } : {}) }),
+    [doc, local],
   ) as Omit<Settings, "id" | "userId">;
 
   useEffect(() => {
@@ -127,18 +131,35 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         typeof window !== "undefined" &&
         window.matchMedia("(prefers-color-scheme: dark)").matches);
     root.classList.toggle("dark", dark);
-  }, [settings.language, settings.theme]);
+    root.style.fontSize = `${Math.min(140, Math.max(80, settings.fontScale))}%`;
+    root.dataset["font"] = settings.fontFamily;
+    writeLocalAppearance({
+      language: settings.language,
+      theme: settings.theme,
+      density: settings.density,
+      fontFamily: settings.fontFamily,
+      fontScale: settings.fontScale,
+    });
+  }, [
+    settings.language,
+    settings.theme,
+    settings.density,
+    settings.fontFamily,
+    settings.fontScale,
+  ]);
 
   const value = useMemo<Ctx>(
     () => ({
       settings,
       update: (patch) => {
+        setLocal((prev) => ({ ...prev, ...patch }));
         if (!doc) return;
         void updateRecord<Settings>(COL.settings, doc.id, patch);
       },
     }),
     [settings, doc],
   );
+
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
