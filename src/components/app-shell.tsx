@@ -170,3 +170,56 @@ function RunningSummary() {
     </div>
   );
 }
+
+/**
+ * Dark-mode switch. The choice is written to settings, which persists it both
+ * to the account and to local storage so it survives leaving the app.
+ */
+function DarkModeToggle() {
+  const { settings, update } = useSettings();
+  const t = useT();
+  const isDark =
+    settings.theme === "dark" ||
+    (settings.theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full"
+      aria-label={t("appearance.toggleDark")}
+      onClick={() => update({ theme: isDark ? "light" : "dark" })}
+    >
+      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      {isDark ? t("common.lightTheme") : t("common.darkTheme")}
+    </Button>
+  );
+}
+
+/** Sidebar readout of the app-wide Pomodoro so it stays visible on every page. */
+function PomodoroSummary() {
+  const { settings } = useSettings();
+  const t = useT();
+  const { remaining, running, phase, round, percent } = usePomodoro();
+  if (!settings.timerInSidebar || (!running && percent === 0)) return null;
+  return (
+    <div className="mt-4 rounded-lg border border-border bg-background/60 p-3">
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Timer className="size-3.5" />
+        {phase === "focus"
+          ? t("focus.phase.focus")
+          : phase === "break"
+            ? t("focus.phase.break")
+            : t("focus.phase.longBreak")}{" "}
+        · {round}
+      </p>
+      <p className="mt-1 font-mono text-lg" dir="ltr">
+        {formatDuration(remaining)}
+      </p>
+      <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted">
+        <span className="block h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+      </span>
+    </div>
+  );
+}
