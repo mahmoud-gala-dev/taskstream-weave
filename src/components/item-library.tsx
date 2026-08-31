@@ -57,7 +57,7 @@ export function ItemLibrary({
       { label: t("status.all"), value: all.length },
       { label: t("status.in_progress"), value: active },
       { label: t("status.done"), value: done },
-      { label: "Avg progress", value: `${avg}%` },
+      { label: t("ui.stats.avgProgress"), value: `${avg}%` },
     ];
   }, [all, t]);
 

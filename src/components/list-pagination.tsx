@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n";
 
 /** Client-side pagination shared by the list surfaces. */
 export function usePagination<T>(rows: T[], pageSize = 10) {
@@ -31,17 +32,18 @@ export function Pagination({
   onChange: (page: number) => void;
   total: number;
 }) {
+  const t = useT();
   if (pageCount <= 1) return null;
   return (
-    <nav className="mt-4 flex items-center justify-between gap-3" aria-label="Pagination">
+    <nav className="mt-4 flex items-center justify-between gap-3" aria-label={t("ui.pagination.label")}>
       <span className="text-xs text-muted-foreground">
-        Page {page} of {pageCount} · {total} items
+        {t("ui.pagination.summary", { page, pageCount, total })}
       </span>
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
           size="icon"
-          aria-label="Previous page"
+          aria-label={t("ui.pagination.previous")}
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
         >
@@ -57,7 +59,7 @@ export function Pagination({
               <Button
                 variant={n === page ? "secondary" : "ghost"}
                 size="icon"
-                aria-label={`Page ${n}`}
+                aria-label={t("ui.pagination.page", { page: n })}
                 aria-current={n === page ? "page" : undefined}
                 onClick={() => onChange(n)}
               >
@@ -68,7 +70,7 @@ export function Pagination({
         <Button
           variant="outline"
           size="icon"
-          aria-label="Next page"
+          aria-label={t("ui.pagination.next")}
           disabled={page >= pageCount}
           onClick={() => onChange(page + 1)}
         >

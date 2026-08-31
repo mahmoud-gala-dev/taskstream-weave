@@ -4,6 +4,7 @@ import { focusMessages } from "@/lib/i18n.extra.focus";
 import { itemMessages } from "@/lib/i18n.extra.item";
 import { optimizerMessages } from "@/lib/i18n.extra.optimizer";
 import { tablesMessages } from "@/lib/i18n.extra.tables";
+import { uiMessages } from "@/lib/i18n.extra.ui";
 import { useSettings } from "@/lib/settings-store";
 
 export type Locale = "en" | "ar";
@@ -378,6 +379,7 @@ export const messages = {
     ...itemMessages.en,
     ...focusMessages.en,
     ...optimizerMessages.en,
+    ...uiMessages.en,
   },
   ar: {
     ...baseMessages.ar,
@@ -385,6 +387,7 @@ export const messages = {
     ...itemMessages.ar,
     ...focusMessages.ar,
     ...optimizerMessages.ar,
+    ...uiMessages.ar,
   },
 } as const;
 
