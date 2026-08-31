@@ -27,8 +27,8 @@ export const goalsMessages = {
     "report.docsTable": "in {table}",
 
     "report.goals": "Goals vs their tasks",
-    "report.goalsHint": "Goal progress compared with the average progress of the tasks linked to it.",
-    "report.goalProgress": "Goal",
+    "report.goalsHint": "Goal progress from completed vs estimated rounds, compared with linked task progress.",
+    "report.goalProgress": "Rounds",
     "report.subtaskAvg": "Tasks average",
     "report.goalsNone": "Link tasks to a goal to see this comparison.",
     "report.gapAhead": "goal ahead",
@@ -70,8 +70,8 @@ export const goalsMessages = {
     "report.docsTable": "في {table}",
 
     "report.goals": "الأهداف مقابل مهامها",
-    "report.goalsHint": "تقدّم الهدف مقارنًا بمتوسط تقدّم المهام المرتبطة به.",
-    "report.goalProgress": "الهدف",
+    "report.goalsHint": "تقدّم الهدف من الجولات المكتملة مقابل المقدّرة، مقارنةً بتقدّم مهامه المرتبطة.",
+    "report.goalProgress": "الجولات",
     "report.subtaskAvg": "متوسط المهام",
     "report.goalsNone": "اربط مهامًا بهدف لعرض هذه المقارنة.",
     "report.gapAhead": "الهدف متقدّم",

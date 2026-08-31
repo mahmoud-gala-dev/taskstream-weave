@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { StatStrip } from "@/components/list-pagination";
-import { elapsedSeconds, formatDuration } from "@/lib/sessions";
+import { elapsedSeconds, formatDuration, isPomodoroRound } from "@/lib/sessions";
 import { useT } from "@/lib/i18n";
 import { useWorkspace } from "@/lib/workspace-store";
 import type { ItemType } from "@/lib/types";
@@ -52,7 +52,7 @@ function ReportPage() {
     for (const s of recent) {
       const entry = perItem.get(s.itemId) ?? { rounds: 0, seconds: 0 };
       entry.seconds += elapsedSeconds(s, now);
-      if (s.title.endsWith("— focus round")) entry.rounds += 1;
+      if (isPomodoroRound(s)) entry.rounds += 1;
       perItem.set(s.itemId, entry);
     }
 
@@ -62,7 +62,7 @@ function ReportPage() {
       const end = start.getTime() + DAY;
       const rounds = recent.filter(
         (s) =>
-          s.title.endsWith("— focus round") &&
+          isPomodoroRound(s) &&
           (s.stoppedAt ?? s.startedAt) >= start.getTime() &&
           (s.stoppedAt ?? s.startedAt) < end,
       ).length;
@@ -115,9 +115,12 @@ function ReportPage() {
         .filter((i) => i.type === "topic")
         .map((topic) => {
           const children = items.filter((i) => i.type === "task" && i.parentTopicId === topic.id);
+          const estimated = children.reduce((n, child) => n + (child.estimatedRounds ?? 0), 0);
+          const actual = children.reduce((n, child) => n + (perItem.get(child.id)?.rounds ?? 0), 0);
           return {
             topic,
             count: children.length,
+            roundProgress: estimated ? Math.min(100, Math.round((actual / estimated) * 100)) : 0,
             avg: children.length
               ? Math.round(children.reduce((n, c) => n + (c.progress ?? 0), 0) / children.length)
               : 0,
@@ -213,7 +216,7 @@ function ReportPage() {
         <p className="mt-1 text-xs text-muted-foreground">{t("report.goalsHint")}</p>
         {report.goals.length ? (
           <ul className="mt-3 space-y-2">
-            {report.goals.map(({ topic, count, avg }) => (
+            {report.goals.map(({ topic, count, avg, roundProgress }) => (
               <li key={topic.id} className="rounded-lg border border-border p-2 text-sm">
                 <div className="flex flex-wrap items-center gap-3">
                   <Link to="/item/$itemId" params={{ itemId: topic.id }} className="min-w-0 flex-1 truncate hover:underline">
@@ -221,14 +224,14 @@ function ReportPage() {
                   </Link>
                   <span className="text-xs text-muted-foreground">{t("goals.taskCount", { count })}</span>
                   <span className="text-xs text-muted-foreground" dir="ltr">
-                    {t("report.goalProgress")} {topic.progress ?? 0}% · {t("report.subtaskAvg")} {avg}%
+                     {t("report.goalProgress")} {roundProgress}% · {t("report.subtaskAvg")} {avg}%
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {(topic.progress ?? 0) >= avg ? t("report.gapAhead") : t("report.gapBehind")}
+                     {roundProgress >= avg ? t("report.gapAhead") : t("report.gapBehind")}
                   </span>
                 </div>
                 <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted">
-                  <span className="block h-full rounded-full bg-primary" style={{ width: `${Math.min(100, topic.progress ?? 0)}%` }} />
+                  <span className="block h-full rounded-full bg-primary" style={{ width: `${roundProgress}%` }} />
                 </span>
                 <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-muted">
                   <span className="block h-full rounded-full bg-primary/50" style={{ width: `${Math.min(100, avg)}%` }} />

@@ -26,6 +26,8 @@ export const todayMessages = {
     "today.pause": "Pause",
     "today.reset": "Reset",
     "today.reports": "Reports",
+    "today.calendar": "Due-date calendar",
+    "today.tasksDue": "{count} due",
 
     "capture.open": "Quick capture",
     "capture.title": "Quick capture",
@@ -99,6 +101,8 @@ export const todayMessages = {
     "today.pause": "إيقاف مؤقّت",
     "today.reset": "تصفير",
     "today.reports": "التقارير",
+    "today.calendar": "تقويم الاستحقاق",
+    "today.tasksDue": "{count} مستحقة",
 
     "capture.open": "التقاط سريع",
     "capture.title": "التقاط سريع",

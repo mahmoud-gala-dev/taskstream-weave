@@ -149,6 +149,7 @@ export const baseMessages = {
     "settings.notificationsEnabled": "Chrome notifications enabled.",
     "settings.notificationsBlocked": "Notifications are blocked in the browser settings.",
     "settings.notificationsUnsupported": "This browser does not support notifications.",
+    "settings.backgroundReminderHint": "Due-date reminders are scheduled through the installed app. Delivery while fully closed depends on browser background permissions.",
     "settings.demoData": "Demo data",
     "settings.demoDataSubtitle":
       "Create a sample section with tables, rows, columns, notes, tasks and topics — then remove it again in one click.",
@@ -325,6 +326,7 @@ export const baseMessages = {
     "settings.notificationsEnabled": "تم تمكين إشعارات المتصفح.",
     "settings.notificationsBlocked": "الإشعارات محجوبة من إعدادات المتصفح.",
     "settings.notificationsUnsupported": "هذا المتصفح لا يدعم الإشعارات.",
+    "settings.backgroundReminderHint": "تُجدول تذكيرات الاستحقاق عبر التطبيق المثبّت. وصولها عند إغلاقه كليًا يعتمد على صلاحيات المتصفح للعمل في الخلفية.",
     "settings.demoData": "بيانات وهمية",
     "settings.demoDataSubtitle":
       "أنشئ قسمًا تجريبيًا يحتوي جداول وصفوف وأعمدة وملاحظات ومهام ومواضيع — ثم احذفه بنقرة واحدة.",
