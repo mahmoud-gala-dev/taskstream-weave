@@ -202,3 +202,20 @@ html[lang="ar"] textarea,
 html[lang="ar"] select {
   font-family: "Cairo", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
+
+/* Distinctive Arabic typography for the workspace grid and detail pages. */
+html[lang="ar"] .work-os-arabic-surface,
+html[lang="ar"] .work-os-arabic-surface input,
+html[lang="ar"] .work-os-arabic-surface textarea,
+html[lang="ar"] .work-os-arabic-surface button,
+html[lang="ar"] .work-os-arabic-surface select {
+  font-family: "Tajawal", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+html[lang="ar"] .work-os-arabic-surface h1,
+html[lang="ar"] .work-os-arabic-surface h2,
+html[lang="ar"] .work-os-arabic-surface h3 {
+  font-family: "Lemonada", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+}

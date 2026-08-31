@@ -38,10 +38,29 @@ type HighlightSource = {
   endMeta: unknown;
 };
 
+/** Readable ink for a highlight background, picked from its relative luminance. */
+export function readableInk(color: string): string {
+  const hex = color.trim().replace("#", "");
+  const full =
+    hex.length === 3
+      ? hex
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : hex;
+  if (full.length !== 6 || /[^0-9a-f]/i.test(full)) return "#111827";
+  const channel = (start: number) => {
+    const value = parseInt(full.slice(start, start + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
+  return luminance > 0.45 ? "#111827" : "#f8fafc";
+}
+
 function tint(id: string, color: string, mode: HighlightMode) {
   document.querySelectorAll<HTMLElement>(`[data-highlight-id="${id}"]`).forEach((node) => {
     node.style.backgroundColor = mode === "text" ? "transparent" : color;
-    node.style.color = mode === "text" ? color : "inherit";
+    node.style.color = mode === "text" ? color : readableInk(color);
     node.style.borderRadius = "2px";
     node.style.padding = mode === "text" ? "0" : "0 1px";
     node.style.cursor = "pointer";

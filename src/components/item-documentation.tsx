@@ -2,7 +2,9 @@ import { Circle, Download, File, FileAudio, FileText, Grid2X2, List, Maximize2, 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { MarkdownPreview, isMarkdown } from "@/components/markdown-preview";
 import { Button } from "@/components/ui/button";
+import { confirmToast } from "@/lib/confirm";
 import { useScreenRecorder } from "@/hooks/useScreenRecorder";
 import { useT } from "@/lib/i18n";
 import { formatDuration } from "@/lib/sessions";
@@ -117,6 +119,7 @@ export function ItemDocumentation({
           className="hidden"
           aria-label={t("item.files.uploadAria")}
           multiple
+          accept="image/*,video/*,audio/*,application/pdf,.md,.markdown,text/markdown,.txt"
           onChange={(e) => {
             uploadFiles(Array.from(e.target.files ?? []));
             e.target.value = "";
@@ -175,7 +178,7 @@ export function ItemDocumentation({
               /></button>
             ) : a.kind === "video" && mediaUrl ? (
               view === "grid" ? <video src={mediaUrl} controls playsInline preload="metadata" className="w-full rounded-md" /> : <File className="size-8 shrink-0 text-muted-foreground" />
-            ) : a.mimeType === "application/pdf" ? <FileText className="size-8 shrink-0 text-muted-foreground" /> : a.mimeType.startsWith("audio/") ? <FileAudio className="size-8 shrink-0 text-muted-foreground" /> : <File className="size-8 shrink-0 text-muted-foreground" />}
+            ) : a.mimeType === "application/pdf" || isMarkdown(a.mimeType, a.filename) ? <FileText className="size-8 shrink-0 text-muted-foreground" /> : a.mimeType.startsWith("audio/") ? <FileAudio className="size-8 shrink-0 text-muted-foreground" /> : <File className="size-8 shrink-0 text-muted-foreground" />}
             <div className={(view === "grid" ? "mt-2 " : "") + "flex min-w-0 flex-1 items-center gap-2"}>
               {mediaUrl ? <a
                 href={mediaUrl}
@@ -186,15 +189,20 @@ export function ItemDocumentation({
                 {a.filename}
               </a> : <span className="min-w-0 flex-1 truncate text-xs text-destructive">{t("item.files.localMissing")}</span>}
               {isLocalAttachment(a) ? <span className="text-xs text-muted-foreground">{t("item.files.localOnly")}</span> : null}
-              {mediaUrl && (a.kind === "screenshot" || a.kind === "video" || a.mimeType === "application/pdf" || a.mimeType.startsWith("audio/")) ? <Button variant="ghost" size="icon" aria-label={t("item.files.preview", { filename: a.filename })} onClick={() => setPreview(a)}><Maximize2 className="size-4" /></Button> : null}
+              {mediaUrl && (a.kind === "screenshot" || a.kind === "video" || a.mimeType === "application/pdf" || isMarkdown(a.mimeType, a.filename) || a.mimeType.startsWith("audio/")) ? <Button variant="ghost" size="icon" aria-label={t("item.files.preview", { filename: a.filename })} onClick={() => setPreview(a)}><Maximize2 className="size-4" /></Button> : null}
               {mediaUrl ? <Button asChild variant="ghost" size="icon"><a href={mediaUrl} download={a.filename} aria-label={t("item.files.download", { filename: a.filename })}><Download className="size-4" /></a></Button> : null}
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label={t("item.files.delete", { filename: a.filename })}
                 onClick={() => {
-                  if (window.confirm(t("item.files.confirmDelete", { filename: a.filename })))
-                    void deleteAttachment(a).then(() => toast.success(t("item.files.deleted")));
+                  void confirmToast(t("item.files.confirmDelete", { filename: a.filename }), {
+                    confirmLabel: t("common.delete"),
+                    cancelLabel: t("common.cancel"),
+                  }).then(
+                    (ok) =>
+                      ok && void deleteAttachment(a).then(() => toast.success(t("item.files.deleted"))),
+                  );
                 }}
               >
                 <Trash2 className="size-4" />
@@ -204,7 +212,7 @@ export function ItemDocumentation({
           );
         })}
       </ul>
-      {preview && resolvedUrls[preview.id] ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-6" role="dialog" aria-modal="true" aria-label={t("item.files.previewDialog", { filename: preview.filename })} onClick={() => setPreview(null)}><div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>{preview.kind === "screenshot" ? <img src={resolvedUrls[preview.id] ?? ""} alt={preview.filename} className="max-h-[80vh] max-w-full object-contain" /> : preview.kind === "video" ? <video src={resolvedUrls[preview.id] ?? ""} controls autoPlay playsInline preload="metadata" className="max-h-[80vh] max-w-full" /> : preview.mimeType.startsWith("audio/") ? <audio src={resolvedUrls[preview.id] ?? ""} controls autoPlay preload="metadata" /> : <iframe src={resolvedUrls[preview.id] ?? ""} title={preview.filename} className="h-[80vh] w-[min(90vw,900px)] bg-card" /> }<Button className="mt-3 w-full" variant="outline" onClick={() => setPreview(null)}>{t("item.files.closePreview")}</Button></div></div> : null}
+      {preview && resolvedUrls[preview.id] ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-6" role="dialog" aria-modal="true" aria-label={t("item.files.previewDialog", { filename: preview.filename })} onClick={() => setPreview(null)}><div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>{preview.kind === "screenshot" ? <img src={resolvedUrls[preview.id] ?? ""} alt={preview.filename} className="max-h-[80vh] max-w-full object-contain" /> : preview.kind === "video" ? <video src={resolvedUrls[preview.id] ?? ""} controls autoPlay playsInline preload="metadata" className="max-h-[80vh] max-w-full" /> : isMarkdown(preview.mimeType, preview.filename) ? <MarkdownPreview url={resolvedUrls[preview.id] ?? ""} label={preview.filename} /> : preview.mimeType.startsWith("audio/") ? <audio src={resolvedUrls[preview.id] ?? ""} controls autoPlay preload="metadata" /> : <iframe src={resolvedUrls[preview.id] ?? ""} title={preview.filename} className="h-[80vh] w-[min(90vw,900px)] bg-card" /> }<Button className="mt-3 w-full" variant="outline" onClick={() => setPreview(null)}>{t("item.files.closePreview")}</Button></div></div> : null}
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { FileText, Link2, Paperclip, StickyNote, Timer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { Pagination, StatStrip, usePagination } from "@/components/list-pagination";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
@@ -167,6 +168,18 @@ function DocumentationPage() {
     return list.filter((e) => e.at >= from && e.at < to).sort((a, b) => b.at - a.at);
   }, [notes, links, attachments, sessions, logs, range, titleOf, t]);
 
+  const stats = useMemo(() => {
+    const count = (kind: Entry["kind"]) => entries.filter((e) => e.kind === kind).length;
+    return [
+      { label: "Entries", value: entries.length },
+      { label: "Notes", value: count("note") },
+      { label: "Files", value: count("attachment") },
+      { label: "Sessions", value: count("session") },
+    ];
+  }, [entries]);
+
+  const { page, setPage, pageCount, pageRows, total } = usePagination(entries, 20);
+
   const icon = {
     note: StickyNote,
     link: Link2,
@@ -197,6 +210,8 @@ function DocumentationPage() {
           ))}
         </div>
 
+        <StatStrip stats={stats} />
+
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
         {entries.length === 0 ? (
@@ -205,7 +220,7 @@ function DocumentationPage() {
           </p>
         ) : (
           <ol className="space-y-2">
-            {entries.map((e) => {
+            {pageRows.map((e) => {
               const Icon = icon[e.kind];
               return (
                 <li
@@ -242,6 +257,8 @@ function DocumentationPage() {
             })}
           </ol>
         )}
+
+        <Pagination page={page} pageCount={pageCount} onChange={setPage} total={total} />
       </div>
     </AppShell>
   );

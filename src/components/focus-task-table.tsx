@@ -3,6 +3,7 @@ import { Camera, CheckCircle2, ExternalLink, Pause, Play, RotateCcw, Timer } fro
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { Pagination, usePagination } from "@/components/list-pagination";
 import { Button } from "@/components/ui/button";
 import { useTick } from "@/hooks/useTick";
 import { useT } from "@/lib/i18n";
@@ -42,6 +43,7 @@ export function FocusTaskTable({
   const [timers, setTimers] = useState<Timers>({});
   const [restored, setRestored] = useState(false);
   const completing = useRef(new Set<string>());
+  const pagination = usePagination(items, 10);
 
   useEffect(() => {
     try {
@@ -199,6 +201,8 @@ export function FocusTaskTable({
     });
   }
 
+  const { page, setPage, pageCount, pageRows, total: pagedTotal } = pagination;
+
   if (!items.length) {
     return (
       <section className="mt-6 rounded-xl border border-border bg-card p-4">
@@ -288,7 +292,7 @@ export function FocusTaskTable({
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => {
+            {pageRows.map((item) => {
               const timer = timers[item.id];
               const running = !!timer?.endsAt && timer.pausedRemaining === null;
               const remaining = remainingFor(item.id);
@@ -366,6 +370,9 @@ export function FocusTaskTable({
             })}
           </tbody>
         </table>
+      </div>
+      <div className="px-4 pb-4">
+        <Pagination page={page} pageCount={pageCount} onChange={setPage} total={pagedTotal} />
       </div>
     </section>
   );

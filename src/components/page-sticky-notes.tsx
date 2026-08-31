@@ -1,4 +1,4 @@
-import { GripVertical, Plus, StickyNote, Trash2 } from "lucide-react";
+import { GripVertical, LayoutGrid, Plus, StickyNote, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -48,9 +48,37 @@ export function PageStickyNotes() {
     return () => window.removeEventListener(ADD_EVENT, add);
   }, [notes.length, userId]);
 
+  /** Lays every note out on a tidy grid so a messy board can be reset. */
+  function tidy() {
+    const columnWidth = 300;
+    const rowHeight = 200;
+    const perRow = Math.max(1, Math.floor((window.innerWidth - 32) / columnWidth));
+    notes.forEach((note, index) => {
+      const x = 16 + (index % perRow) * columnWidth;
+      const y = 80 + Math.floor(index / perRow) * rowHeight;
+      if (note.x === x && note.y === y) return;
+      void updateRecord<PageNote>(COL.pageNotes, note.id, { x, y }).catch(() =>
+        toast.error("Could not arrange the notes."),
+      );
+    });
+  }
+
   return (
     <div className="pointer-events-none fixed inset-0 z-40" aria-label="Page sticky notes">
       {notes.map((note) => <DraggableNote key={note.id} note={note} />)}
+      {notes.length > 1 ? (
+        <Button
+          type="button"
+          size="icon"
+          variant="secondary"
+          className="pointer-events-auto fixed bottom-20 end-5 shadow-lg"
+          aria-label="Arrange sticky notes"
+          title="Arrange sticky notes"
+          onClick={tidy}
+        >
+          <LayoutGrid className="size-4" />
+        </Button>
+      ) : null}
       <Button
         type="button"
         size="icon"

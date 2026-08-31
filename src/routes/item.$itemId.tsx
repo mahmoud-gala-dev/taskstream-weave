@@ -169,7 +169,7 @@ function ItemWorkspace() {
     );
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="work-os-arabic-surface mx-auto max-w-4xl p-6">
       <Link to="/tables" className="text-sm text-muted-foreground hover:underline">
         <ArrowLeft className="mr-1 inline size-4" /> {t("item.backToTables")}
       </Link>
