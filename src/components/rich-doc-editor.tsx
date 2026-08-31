@@ -127,6 +127,35 @@ export function RichDocEditor({
           <Link2 className="size-4" />
         </Tool>
         <Divider />
+        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          <AlignJustify className="size-4" aria-hidden />
+          <select
+            aria-label="Line spacing"
+            title="Line spacing"
+            value={lineHeight}
+            onChange={(event) => setLineHeight(Number(event.target.value))}
+            className="h-7 rounded-md border border-input bg-background px-1 text-xs"
+          >
+            {[1.3, 1.6, 1.9, 2.2, 2.6].map((value) => (
+              <option key={value} value={value}>{value.toFixed(1)}×</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          <MoveVertical className="size-4" aria-hidden />
+          <select
+            aria-label="Paragraph spacing"
+            title="Paragraph spacing"
+            value={blockSpacing}
+            onChange={(event) => setBlockSpacing(Number(event.target.value))}
+            className="h-7 rounded-md border border-input bg-background px-1 text-xs"
+          >
+            {[0, 4, 8, 14, 20].map((value) => (
+              <option key={value} value={value}>{value}px</option>
+            ))}
+          </select>
+        </label>
+        <Divider />
         <Tool label={t("doc.toolbar.clearFormatting")} onClick={() => run("removeFormat")}><Eraser className="size-4" /></Tool>
         <Tool label={t("doc.toolbar.undo")} onClick={() => run("undo")}><Undo2 className="size-4" /></Tool>
         <Tool label={t("doc.toolbar.redo")} onClick={() => run("redo")}><Redo2 className="size-4" /></Tool>
@@ -144,10 +173,17 @@ export function RichDocEditor({
         data-placeholder={resolvedPlaceholder}
         onInput={() => setDirty(true)}
         onBlur={commit}
-        style={{ minHeight }}
+        style={
+          {
+            minHeight,
+            lineHeight,
+            "--doc-block-spacing": `${blockSpacing}px`,
+          } as React.CSSProperties
+        }
         className={cn(
           "prose-doc rounded-b-lg border border-t-0 border-border bg-card p-4 text-sm outline-none",
           "focus-visible:ring-2 focus-visible:ring-ring",
+          "[&_p]:mb-[var(--doc-block-spacing)] [&_li]:mb-[var(--doc-block-spacing)]",
           "empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)]",
         )}
       />
