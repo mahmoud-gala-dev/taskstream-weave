@@ -248,8 +248,25 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   return <PomodoroContext.Provider value={value}>{children}</PomodoroContext.Provider>;
 }
 
+/** Inert timer used when a component renders before/outside the provider
+ *  (e.g. while the provider module is hot-reloaded) — never throws, so the
+ *  sidebar and pages keep rendering instead of blanking the screen. */
+const IDLE: Ctx = {
+  phase: "focus",
+  round: 1,
+  taskId: "",
+  setTaskId: () => undefined,
+  remaining: 0,
+  totalSeconds: 0,
+  percent: 0,
+  running: false,
+  completedRounds: [],
+  start: async () => undefined,
+  pause: () => undefined,
+  reset: () => undefined,
+  skip: () => undefined,
+};
+
 export function usePomodoro(): Ctx {
-  const ctx = useContext(PomodoroContext);
-  if (!ctx) throw new Error("usePomodoro must be used inside <PomodoroProvider>");
-  return ctx;
+  return useContext(PomodoroContext) ?? IDLE;
 }
