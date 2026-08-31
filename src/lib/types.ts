@@ -166,6 +166,8 @@ export type WorkSession = Base & {
   pausedAt?: number | null;
   stoppedAt?: number | null;
   accumulatedSeconds: number;
+  /** Explicit analytics marker; older records are detected by their legacy title suffix. */
+  sessionKind?: "manual" | "pomodoroRound";
 };
 
 export type ActivityLog = Base & {

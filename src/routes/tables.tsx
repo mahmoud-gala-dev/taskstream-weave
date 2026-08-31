@@ -20,6 +20,8 @@ import {
   ChevronRight,
   Edit3,
   FolderInput,
+  ListChecks,
+  FolderTree,
   GripVertical,
   Maximize2,
   Minimize2,
@@ -1610,6 +1612,7 @@ function ItemCard({
   otherTables: { id: string; name: string }[];
 }) {
   const t = useT();
+  const isTask = item.type === "task";
   const { attributes, listeners, setNodeRef, transform, isDragging, isOver } = useSortable({
     id: `placement-${placement.id}`,
     data: {
@@ -1629,7 +1632,10 @@ function ItemCard({
         backgroundColor: tint(item.color, 0.08),
       }}
       className={cn(
-        "rounded-md border border-border bg-card p-2 shadow-sm",
+        "rounded-md border bg-card p-2 shadow-sm transition-shadow",
+        isTask
+          ? "border-border border-s-4 hover:shadow-md"
+          : "border-primary/35 border-s-4 border-s-primary bg-accent/35 shadow-none",
         isDragging && "opacity-40",
         isOver && "ring-2 ring-primary",
       )}
@@ -1646,11 +1652,12 @@ function ItemCard({
         </button>
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-start">
           <span className="block text-sm leading-snug">
-            {item.icon ? <span aria-hidden>{item.icon} </span> : null}
+            <span aria-hidden>{item.icon ?? (isTask ? "✓" : "◫")} </span>
             {item.title}
           </span>
           <span className="mt-0.5 block text-[11px] uppercase tracking-wide text-muted-foreground">
-            {item.type} · {item.status.replace("_", " ")} · {item.progress}%
+            {isTask ? t("tables.taskCard") : t("tables.topicCard")}
+            {isTask ? ` · ${item.status.replace("_", " ")} · ${item.progress}%` : ""}
           </span>
         </button>
         <DropdownMenu>
@@ -1661,8 +1668,8 @@ function ItemCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onOpen}>{t("tables.openWorkspace")}</DropdownMenuItem>
-            <DropdownMenuItem onClick={onStart}>{t("tables.startWork")}</DropdownMenuItem>
-            <DropdownMenuItem onClick={onFocus}>{t("tables.pomodoroFocus")}</DropdownMenuItem>
+            {isTask ? <DropdownMenuItem onClick={onStart}>{t("tables.startWork")}</DropdownMenuItem> : null}
+            {isTask ? <DropdownMenuItem onClick={onFocus}>{t("tables.pomodoroFocus")}</DropdownMenuItem> : null}
             {otherTables.length ? (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>{t("tables.addToAnotherTable")}</DropdownMenuSubTrigger>
@@ -1691,12 +1698,12 @@ function ItemCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="mt-2 h-1 rounded-full bg-muted">
+      {isTask ? <div className="mt-2 h-1 rounded-full bg-muted">
         <div
           className="h-1 rounded-full bg-primary"
           style={{ width: `${item.progress}%`, backgroundColor: item.color ?? undefined }}
         />
-      </div>
+      </div> : null}
     </div>
   );
 
@@ -1706,10 +1713,12 @@ function ItemCard({
       <ContextMenuContent className="w-56">
         <ContextMenuLabel className="truncate">{item.title}</ContextMenuLabel>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={onOpen}><FolderInput /> {t("tables.openWorkspace")}</ContextMenuItem>
-        <ContextMenuItem onClick={onStart}><Clock3 /> {t("tables.startWorkSession")}</ContextMenuItem>
-        <ContextMenuItem onClick={onFocus}><Clock3 /> {t("tables.pomodoroFocusOnThis")}</ContextMenuItem>
-        <ContextMenuSub>
+        <ContextMenuItem onClick={onOpen}>
+          {isTask ? <ListChecks /> : <FolderTree />} {isTask ? t("tables.openTask") : t("tables.openTopic")}
+        </ContextMenuItem>
+        {isTask ? <ContextMenuItem onClick={onStart}><Clock3 /> {t("tables.startWorkSession")}</ContextMenuItem> : null}
+        {isTask ? <ContextMenuItem onClick={onFocus}><Clock3 /> {t("tables.pomodoroFocusOnThis")}</ContextMenuItem> : null}
+        {isTask ? <ContextMenuSub>
           <ContextMenuSubTrigger>{t("tables.status")}</ContextMenuSubTrigger>
           <ContextMenuSubContent>
             {STATUSES.map((s) => (
@@ -1719,8 +1728,8 @@ function ItemCard({
               </ContextMenuItem>
             ))}
           </ContextMenuSubContent>
-        </ContextMenuSub>
-        <ContextMenuSub>
+        </ContextMenuSub> : null}
+        {isTask ? <ContextMenuSub>
           <ContextMenuSubTrigger>{t("tables.progress")}</ContextMenuSubTrigger>
           <ContextMenuSubContent>
             {[0, 25, 50, 75, 100].map((p) => (
@@ -1729,7 +1738,7 @@ function ItemCard({
               </ContextMenuItem>
             ))}
           </ContextMenuSubContent>
-        </ContextMenuSub>
+        </ContextMenuSub> : null}
         <ContextMenuSub>
           <ContextMenuSubTrigger>{t("tables.color")}</ContextMenuSubTrigger>
           <ContextMenuSubContent>

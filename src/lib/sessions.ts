@@ -21,6 +21,14 @@ export function formatDuration(totalSeconds: number): string {
   return [h, m, sec].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
+export function isPomodoroRound(s: Pick<WorkSession, "sessionKind" | "title">): boolean {
+  return s.sessionKind === "pomodoroRound" || s.title.endsWith("— focus round");
+}
+
+export function completedRoundsForItem(sessions: WorkSession[], itemId: string): number {
+  return sessions.filter((s) => s.itemId === itemId && isPomodoroRound(s)).length;
+}
+
 export async function startSession(
   userId: string,
   item: { id: string; type: ItemType; title: string },
@@ -36,6 +44,7 @@ export async function startSession(
     pausedAt: null,
     stoppedAt: null,
     accumulatedSeconds: 0,
+    sessionKind: "manual",
   });
   void trackEvent("session_started", { item_type: item.type });
   void logActivity(userId, "Started work", item.title, item.id);
@@ -108,6 +117,7 @@ export async function logCompletedRound(
     pausedAt: null,
     stoppedAt: now,
     accumulatedSeconds: total,
+    sessionKind: "pomodoroRound",
   });
   void trackEvent("pomodoro_round_completed");
   void logActivity(userId, "Completed focus round", `${Math.round(total / 60)} min`, item.id);
