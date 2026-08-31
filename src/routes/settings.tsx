@@ -120,6 +120,28 @@ function SettingsPage() {
           </select>
         </Field>
 
+        <Field id="fontFamily" label={t("appearance.fontFamily")}>
+          <select
+            id="fontFamily"
+            value={settings.fontFamily}
+            onChange={(e) => update({ fontFamily: e.target.value as "sans" | "serif" | "mono" })}
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="sans">{t("appearance.fontSans")}</option>
+            <option value="serif">{t("appearance.fontSerif")}</option>
+            <option value="mono">{t("appearance.fontMono")}</option>
+          </select>
+        </Field>
+
+        <Number
+          id="fontScale"
+          label={t("appearance.fontScale")}
+          value={settings.fontScale}
+          min={80}
+          max={140}
+          onChange={(fontScale) => update({ fontScale })}
+        />
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -129,6 +151,7 @@ function SettingsPage() {
           {t("settings.timerInSidebar")}
         </label>
       </div>
+
 
       <h2 className="mt-10 text-lg font-semibold">{t("settings.pomodoro")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
