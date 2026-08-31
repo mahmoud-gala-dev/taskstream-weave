@@ -83,7 +83,7 @@ import { ICONS, PALETTE, tint } from "@/lib/palette";
 import { startSession } from "@/lib/sessions";
 import { confirmToast } from "@/lib/confirm";
 import { readSnapshot } from "@/lib/table-snapshot";
-import type { ItemStatus, ItemType, Placement, TableCell, WorkItem } from "@/lib/types";
+import type { ItemStatus, ItemType, Note, Placement, TableCell, WorkItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace-store";
 
@@ -330,6 +330,17 @@ function TablesPage() {
         columnId,
         sortOrder: nextCellOrder(placements, currentTableId, rowId, columnId),
       });
+      // Every new topic gets its own documentation note so the Documentation
+      // surface always has an entry attached to the topic from the start.
+      if (type === "topic") {
+        await createRecord<Note>(COL.notes, userId, {
+          itemId,
+          title: t("report.topicNoteTitle"),
+          body: t("report.topicNoteBody", { title }),
+          pinned: true,
+          color: "#f59e0b",
+        });
+      }
       void trackEvent(type === "task" ? "task_created" : "topic_created");
       toast.success(type === "task" ? t("tables.taskAdded") : t("tables.topicAdded"), { description: title });
     }, t("tables.itemCreateFailed"));
