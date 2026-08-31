@@ -38,7 +38,7 @@ const PomodoroContext = createContext<Ctx | null>(null);
  * or a closed tab without needing a reload to catch up.
  */
 export function PomodoroProvider({ children }: { children: ReactNode }) {
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const t = useT();
   const { items, userId } = useWorkspace();
   const now = useTick(1000);
@@ -54,7 +54,19 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(POMODORO_KEY);
+      // Prefer whichever snapshot is newer: this browser's local copy or the
+      // one stored on the account (so the timer follows you to another
+      // browser or device even if this tab was never open there).
+      const local = window.localStorage.getItem(POMODORO_KEY);
+      const remote = settings.pomodoroState || null;
+      const at = (raw: string | null) => {
+        try {
+          return raw ? ((JSON.parse(raw) as { savedAt?: number }).savedAt ?? 0) : -1;
+        } catch {
+          return -1;
+        }
+      };
+      const saved = at(remote) > at(local) ? remote : local;
       if (saved) {
         const state = JSON.parse(saved) as Partial<{
           phase: Phase;
@@ -74,14 +86,25 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     } finally {
       setRestored(true);
     }
-  }, []);
+    // Restoring once on mount is intentional; later remote changes must not
+    // clobber a timer the user is actively running in this tab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.pomodoroState !== ""]);
 
   useEffect(() => {
     if (!restored) return;
-    window.localStorage.setItem(
-      POMODORO_KEY,
-      JSON.stringify({ phase, round, endsAt, remainingWhenPaused, taskId }),
-    );
+    const snapshot = JSON.stringify({
+      phase,
+      round,
+      endsAt,
+      remainingWhenPaused,
+      taskId,
+      savedAt: Date.now(),
+    });
+    window.localStorage.setItem(POMODORO_KEY, snapshot);
+    // Only timestamps are stored, so writes happen on transitions, not ticks.
+    update({ pomodoroState: snapshot });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restored, phase, round, endsAt, remainingWhenPaused, taskId]);
 
   const task = useMemo(() => items.find((i) => i.id === taskId) ?? null, [items, taskId]);
