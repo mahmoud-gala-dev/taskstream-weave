@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { goalsMessages } from "@/lib/i18n.extra.goals";
 import { focusMessages } from "@/lib/i18n.extra.focus";
 import { itemMessages } from "@/lib/i18n.extra.item";
 import { optimizerMessages } from "@/lib/i18n.extra.optimizer";
@@ -384,6 +385,7 @@ export const messages = {
     ...uiMessages.en,
     ...reportMessages.en,
     ...todayMessages.en,
+    ...goalsMessages.en,
   },
   ar: {
     ...baseMessages.ar,
@@ -394,6 +396,7 @@ export const messages = {
     ...uiMessages.ar,
     ...reportMessages.ar,
     ...todayMessages.ar,
+    ...goalsMessages.ar,
   },
 } as const;
 
