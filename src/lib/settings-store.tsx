@@ -31,6 +31,8 @@ export type Settings = Base & {
   reminderStyle: ReminderStyle;
   /** Chrome notification body shown when a focus round ends. */
   focusDoneMessage: string;
+  /** Serialized Pomodoro timer state, so a running timer follows the account. */
+  pomodoroState: string;
 };
 
 const DEFAULTS: Omit<Settings, "id" | "userId"> = {
@@ -51,6 +53,7 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
   focusRoundsTarget: 4,
   reminderStyle: "both",
   focusDoneMessage: "Focus round complete on {task} — {minutes} min tracked.",
+  pomodoroState: "",
 };
 
 /**
