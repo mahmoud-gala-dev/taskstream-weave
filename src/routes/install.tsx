@@ -50,7 +50,7 @@ function InstallPage() {
       <p className="mt-1 text-sm text-muted-foreground">{t("install.subtitle")}</p>
 
       <section className="mt-6 flex items-center gap-4 rounded-xl border border-border bg-card p-4">
-        <img src="/icon.svg" alt={t("install.iconTitle")} className="size-16 rounded-2xl" />
+        <img src="/app-icon-192.png" width={64} height={64} loading="lazy" alt={t("install.iconTitle")} className="size-16 rounded-2xl" />
         <div>
           <p className="text-sm font-semibold">{t("install.iconTitle")}</p>
           <p className="text-xs text-muted-foreground">{t("install.iconHint")}</p>
