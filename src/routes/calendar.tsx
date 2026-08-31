@@ -130,9 +130,18 @@ function CalendarPage() {
         <Button size="sm" variant="ghost" onClick={() => setMonthOffset(0)}>
           {t("calendar.today")}
         </Button>
-        <Link to="/report" className="ms-auto text-sm text-primary underline-offset-4 hover:underline">
-          {t("calendar.openReport")}
-        </Link>
+        <span className="ms-auto flex gap-4">
+          <Link
+            to="/daily"
+            search={{ date: selected }}
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
+            {t("calendar.openDaily")}
+          </Link>
+          <Link to="/report" className="text-sm text-primary underline-offset-4 hover:underline">
+            {t("calendar.openReport")}
+          </Link>
+        </span>
       </div>
 
       <StatStrip

@@ -40,6 +40,7 @@ const NAV = [
   { to: "/tables", key: "nav.tables", icon: Table2 },
   { to: "/focus", key: "nav.focus", icon: Timer },
   { to: "/report", key: "nav.report", icon: BarChart3 },
+  { to: "/daily", key: "nav.daily", icon: CalendarClock },
   { to: "/calendar", key: "nav.calendar", icon: CalendarDays },
   { to: "/assistant", key: "nav.assistant", icon: Sparkles },
   { to: "/optimizer", key: "nav.optimizer", icon: Wand2 },

@@ -107,6 +107,26 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restored, phase, round, endsAt, remainingWhenPaused, taskId]);
 
+  // Local heartbeat: a lightweight snapshot is refreshed on this device every
+  // 15s while a round runs, so an offline phone, a killed browser or a reboot
+  // still restores an accurate timer without depending on the cloud.
+  useEffect(() => {
+    if (!restored || endsAt === null) return;
+    const write = () => {
+      try {
+        window.localStorage.setItem(
+          POMODORO_KEY,
+          JSON.stringify({ phase, round, endsAt, remainingWhenPaused, taskId, savedAt: Date.now() }),
+        );
+      } catch {
+        /* storage is best-effort */
+      }
+    };
+    write();
+    const id = setInterval(write, 15_000);
+    return () => clearInterval(id);
+  }, [restored, phase, round, endsAt, remainingWhenPaused, taskId]);
+
   const task = useMemo(() => items.find((i) => i.id === taskId) ?? null, [items, taskId]);
 
   const totalSeconds =

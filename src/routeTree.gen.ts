@@ -14,6 +14,7 @@ import { Route as ActiveRouteImport } from './routes/active'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DocumentationRouteImport } from './routes/documentation'
 import { Route as FocusRouteImport } from './routes/focus'
 import { Route as OptimizerRouteImport } from './routes/optimizer'
@@ -48,6 +49,11 @@ const AuthRoute = AuthRouteImport.update({
 const CalendarRoute = CalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DailyRoute = DailyRouteImport.update({
+  id: '/daily',
+  path: '/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentationRoute = DocumentationRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
+  '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
   '/optimizer': typeof OptimizerRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
+  '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
   '/optimizer': typeof OptimizerRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
+  '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
   '/optimizer': typeof OptimizerRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/assistant'
     | '/auth'
     | '/calendar'
+    | '/daily'
     | '/documentation'
     | '/focus'
     | '/optimizer'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/assistant'
     | '/auth'
     | '/calendar'
+    | '/daily'
     | '/documentation'
     | '/focus'
     | '/optimizer'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/assistant'
     | '/auth'
     | '/calendar'
+    | '/daily'
     | '/documentation'
     | '/focus'
     | '/optimizer'
@@ -213,6 +225,7 @@ export interface RootRouteChildren {
   AssistantRoute: typeof AssistantRoute
   AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
+  DailyRoute: typeof DailyRoute
   DocumentationRoute: typeof DocumentationRoute
   FocusRoute: typeof FocusRoute
   OptimizerRoute: typeof OptimizerRoute
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daily': {
+      id: '/daily'
+      path: '/daily'
+      fullPath: '/daily'
+      preLoaderRoute: typeof DailyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documentation': {
@@ -341,6 +361,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssistantRoute: AssistantRoute,
   AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
+  DailyRoute: DailyRoute,
   DocumentationRoute: DocumentationRoute,
   FocusRoute: FocusRoute,
   OptimizerRoute: OptimizerRoute,

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { clearDemoData, hasDemoData, seedDemoData } from "@/lib/demo-data";
 import { useSettings } from "@/lib/settings-store";
+import { citySun, findCity, formatMinutes, NIGHT_CITIES } from "@/lib/night-hours";
 import { useWorkspace } from "@/lib/workspace-store";
 import { useT } from "@/lib/i18n";
 
@@ -109,6 +110,10 @@ function SettingsPage() {
         </Field>
 
         {settings.theme === "auto" ? (
+          <NightCityField />
+        ) : null}
+
+        {settings.theme === "auto" && settings.nightCity === "manual" ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <Number
               id="nightStartHour"
@@ -321,6 +326,42 @@ function Number({
   );
 }
 
+
+/** Picks the Arab city whose real sunset/sunrise drives the automatic theme. */
+function NightCityField() {
+  const { settings, update } = useSettings();
+  const t = useT();
+  const city = findCity(settings.nightCity);
+  const sun = city ? citySun(city) : null;
+  return (
+    <div className="space-y-1">
+      <Field id="nightCity" label={t("appearance.nightCity")}>
+        <select
+          id="nightCity"
+          value={settings.nightCity}
+          onChange={(e) => update({ nightCity: e.target.value })}
+          className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+        >
+          {NIGHT_CITIES.map((c) => (
+            <option key={c.id} value={c.id}>
+              {settings.language === "ar" ? c.ar : c.en}
+            </option>
+          ))}
+          <option value="manual">{t("appearance.nightCityManual")}</option>
+        </select>
+      </Field>
+      {city && sun ? (
+        <p className="text-xs text-muted-foreground">
+          {t("appearance.nightCityHint", {
+            city: settings.language === "ar" ? city.ar : city.en,
+            sunset: formatMinutes(sun.sunsetMinutes),
+            sunrise: formatMinutes(sun.sunriseMinutes),
+          })}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function Field({
   id,

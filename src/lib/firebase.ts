@@ -27,7 +27,19 @@ async function init(): Promise<FirebaseBundle> {
   const app = getApps().length ? getApp() : initializeApp(config);
   const auth = authMod.getAuth(app);
   await authMod.setPersistence(auth, authMod.browserLocalPersistence).catch(() => undefined);
-  const db = firestoreMod.getFirestore(app);
+  // Offline-first: reads and writes go through an IndexedDB cache, so the app
+  // (timers, sessions, notes) keeps working with no connection and syncs the
+  // queued writes once the device is back online — even after a restart.
+  let db: Firestore;
+  try {
+    db = firestoreMod.initializeFirestore(app, {
+      localCache: firestoreMod.persistentLocalCache({
+        tabManager: firestoreMod.persistentMultipleTabManager(),
+      }),
+    });
+  } catch {
+    db = firestoreMod.getFirestore(app);
+  }
   const storage = storageMod.getStorage(app);
 
   // Analytics is optional and must never break the app.
