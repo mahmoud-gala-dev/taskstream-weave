@@ -1,14 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Bell, Pause, Play, RotateCcw, SkipForward } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useMemo } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { FocusTaskTable } from "@/components/focus-task-table";
 import { Button } from "@/components/ui/button";
-import { useTick } from "@/hooks/useTick";
-import { creditRoundToItem, formatDuration, logCompletedRound } from "@/lib/sessions";
+import { formatDuration } from "@/lib/sessions";
+import { usePomodoro } from "@/lib/pomodoro-store";
 import { useSettings } from "@/lib/settings-store";
 import { useT } from "@/lib/i18n";
 import { useWorkspace } from "@/lib/workspace-store";
