@@ -1,0 +1,56 @@
+/**
+ * Weekly report page plus the appearance controls (dark mode, font, size)
+ * added to the sidebar and Settings.
+ */
+export const reportMessages = {
+  en: {
+    "nav.report": "Weekly report",
+    "appearance.toggleDark": "Toggle dark mode",
+    "appearance.fontFamily": "Interface font",
+    "appearance.fontSans": "System sans",
+    "appearance.fontSerif": "Serif",
+    "appearance.fontMono": "Monospace",
+    "appearance.fontScale": "Text size (%)",
+
+    "report.title": "Weekly report",
+    "report.subtitle": "Focus rounds, tracked time and progress for the last 7 days. Refreshed every time you open this page.",
+    "report.rounds": "Pomodoro rounds",
+    "report.tracked": "Tracked time",
+    "report.tasksTouched": "Tasks worked on",
+    "report.avgProgress": "Avg progress",
+    "report.byDay": "Rounds per day",
+    "report.tasks": "Tasks",
+    "report.topics": "Topics",
+    "report.item": "Item",
+    "report.progress": "Progress",
+    "report.empty": "No focus rounds recorded in the last 7 days yet.",
+    "report.updated": "Updated {time}",
+    "report.topicNoteTitle": "Topic documentation",
+    "report.topicNoteBody": "Documentation for “{title}”. Notes added here stay attached to this topic.",
+  },
+  ar: {
+    "nav.report": "التقرير الأسبوعي",
+    "appearance.toggleDark": "تبديل الوضع الليلي",
+    "appearance.fontFamily": "خط الواجهة",
+    "appearance.fontSans": "خط النظام",
+    "appearance.fontSerif": "خط مزخرف",
+    "appearance.fontMono": "خط ثابت العرض",
+    "appearance.fontScale": "حجم النص (%)",
+
+    "report.title": "التقرير الأسبوعي",
+    "report.subtitle": "جولات التركيز والوقت المتتبَّع والتقدّم خلال آخر ٧ أيام، ويُحدَّث تلقائيًا عند كل فتح.",
+    "report.rounds": "جولات بومودورو",
+    "report.tracked": "الوقت المتتبَّع",
+    "report.tasksTouched": "مهام تم العمل عليها",
+    "report.avgProgress": "متوسط التقدّم",
+    "report.byDay": "الجولات لكل يوم",
+    "report.tasks": "المهام",
+    "report.topics": "المواضيع",
+    "report.item": "العنصر",
+    "report.progress": "التقدّم",
+    "report.empty": "لا توجد جولات تركيز خلال آخر ٧ أيام.",
+    "report.updated": "آخر تحديث {time}",
+    "report.topicNoteTitle": "توثيق الموضوع",
+    "report.topicNoteBody": "توثيق الموضوع «{title}». كل الملاحظات المضافة هنا تبقى مرتبطة بهذا الموضوع.",
+  },
+} as const;

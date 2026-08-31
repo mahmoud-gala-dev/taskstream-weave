@@ -13,6 +13,7 @@ import { Toaster } from "../components/ui/sonner";
 import { AuthProvider } from "../hooks/useAuth";
 import { SettingsProvider } from "../lib/settings-store";
 import { WorkspaceProvider } from "../lib/workspace-store";
+import { PomodoroProvider } from "../lib/pomodoro-store";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -146,10 +147,13 @@ function RootComponent() {
       <AuthProvider>
         <SettingsProvider>
           <WorkspaceProvider>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-            <Toaster />
+            <PomodoroProvider>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+              <Toaster />
+            </PomodoroProvider>
           </WorkspaceProvider>
+
 
         </SettingsProvider>
       </AuthProvider>

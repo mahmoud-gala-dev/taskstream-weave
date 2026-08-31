@@ -10,6 +10,9 @@ export type Settings = Base & {
   language: "en" | "ar";
   theme: "light" | "dark" | "system";
   density: "compact" | "comfortable" | "large";
+  /** Global UI font family and scale, applied to <html>. */
+  fontFamily: "sans" | "serif" | "mono";
+  fontScale: number;
   timerInSidebar: boolean;
   /** Pomodoro focus preferences. */
   focusMinutes: number;
@@ -30,6 +33,8 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
   language: "en",
   theme: "system",
   density: "comfortable",
+  fontFamily: "sans",
+  fontScale: 100,
   timerInSidebar: true,
   focusMinutes: 25,
   breakMinutes: 5,
@@ -41,6 +46,34 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
   reminderStyle: "both",
   focusDoneMessage: "Focus round complete on {task} — {minutes} min tracked.",
 };
+
+/**
+ * Appearance preferences are mirrored to localStorage so theme, font and size
+ * survive sign-out, a closed tab or a slow Firestore load and are applied on the
+ * very first paint of the next visit.
+ */
+const LOCAL_KEY = "work-os:appearance";
+type Appearance = Pick<Settings, "language" | "theme" | "density" | "fontFamily" | "fontScale">;
+
+function readLocalAppearance(): Partial<Appearance> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(LOCAL_KEY) ?? "{}") as Partial<Appearance>;
+  } catch {
+    return {};
+  }
+}
+
+function writeLocalAppearance(a: Appearance) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCAL_KEY, JSON.stringify(a));
+  } catch {
+    /* storage is best-effort */
+  }
+}
+
+
 
 
 
@@ -59,6 +92,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.uid ?? null;
   const [doc, setDoc] = useState<Settings | null>(null);
+  const [local, setLocal] = useState<Partial<Appearance>>({});
+
+  // Restore the locally cached appearance before Firestore answers.
+  useEffect(() => setLocal(readLocalAppearance()), []);
 
   useEffect(() => {
     setDoc(null);
@@ -79,8 +116,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   const settings = useMemo(
-    () => ({ ...DEFAULTS, ...(doc ? { ...doc } : {}) }),
-    [doc],
+    () => ({ ...DEFAULTS, ...local, ...(doc ? { ...doc } : {}) }),
+    [doc, local],
   ) as Omit<Settings, "id" | "userId">;
 
   useEffect(() => {
@@ -94,18 +131,35 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         typeof window !== "undefined" &&
         window.matchMedia("(prefers-color-scheme: dark)").matches);
     root.classList.toggle("dark", dark);
-  }, [settings.language, settings.theme]);
+    root.style.fontSize = `${Math.min(140, Math.max(80, settings.fontScale))}%`;
+    root.dataset["font"] = settings.fontFamily;
+    writeLocalAppearance({
+      language: settings.language,
+      theme: settings.theme,
+      density: settings.density,
+      fontFamily: settings.fontFamily,
+      fontScale: settings.fontScale,
+    });
+  }, [
+    settings.language,
+    settings.theme,
+    settings.density,
+    settings.fontFamily,
+    settings.fontScale,
+  ]);
 
   const value = useMemo<Ctx>(
     () => ({
       settings,
       update: (patch) => {
+        setLocal((prev) => ({ ...prev, ...patch }));
         if (!doc) return;
         void updateRecord<Settings>(COL.settings, doc.id, patch);
       },
     }),
     [settings, doc],
   );
+
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }

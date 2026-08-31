@@ -1,14 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Bell, Pause, Play, RotateCcw, SkipForward } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useMemo } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { FocusTaskTable } from "@/components/focus-task-table";
 import { Button } from "@/components/ui/button";
-import { useTick } from "@/hooks/useTick";
-import { creditRoundToItem, formatDuration, logCompletedRound } from "@/lib/sessions";
+import { formatDuration } from "@/lib/sessions";
+import { usePomodoro } from "@/lib/pomodoro-store";
 import { useSettings } from "@/lib/settings-store";
 import { useT } from "@/lib/i18n";
 import { useWorkspace } from "@/lib/workspace-store";
@@ -42,184 +41,34 @@ export const Route = createFileRoute("/focus")({
   ),
 });
 
-type Phase = "focus" | "break" | "longBreak";
-
-const POMODORO_KEY = "work-os:pomodoro";
-
 function FocusPage() {
   const { settings } = useSettings();
   const t = useT();
   const { items, sessions, userId } = useWorkspace();
-  const now = useTick(1000);
   const search = Route.useSearch();
-
-  const [taskId, setTaskId] = useState<string>(search.item ?? "");
-  const [completedRounds, setCompletedRounds] = useState<
-    { id: number; title: string; minutes: number }[]
-  >([]);
+  const {
+    phase,
+    round,
+    taskId,
+    setTaskId,
+    remaining,
+    totalSeconds,
+    percent,
+    running,
+    completedRounds,
+    start,
+    pause,
+    reset,
+    skip,
+  } = usePomodoro();
 
   // A Pomodoro launched from a table cell preselects that task.
   useEffect(() => {
     if (search.item) setTaskId(search.item);
-  }, [search.item]);
-  const [phase, setPhase] = useState<Phase>("focus");
-  const [round, setRound] = useState(1);
-  const [endsAt, setEndsAt] = useState<number | null>(null);
-  const [remainingWhenPaused, setRemainingWhenPaused] = useState<number | null>(null);
-  const notifiedRef = useRef<{ warn: boolean; end: boolean }>({ warn: false, end: false });
-  const [restored, setRestored] = useState(false);
-
-  // The timer survives a refresh: only timestamps are stored, so a running
-  // round keeps counting down while the tab is closed.
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(POMODORO_KEY);
-      if (saved) {
-        const state = JSON.parse(saved) as {
-          phase?: Phase;
-          round?: number;
-          endsAt?: number | null;
-          remainingWhenPaused?: number | null;
-          taskId?: string;
-        };
-        if (state.phase) setPhase(state.phase);
-        if (state.round) setRound(state.round);
-        if (typeof state.endsAt === "number" && state.endsAt > Date.now()) setEndsAt(state.endsAt);
-        if (typeof state.remainingWhenPaused === "number") setRemainingWhenPaused(state.remainingWhenPaused);
-        if (state.taskId && !search.item) setTaskId(state.taskId);
-      }
-    } catch {
-      window.localStorage.removeItem(POMODORO_KEY);
-    } finally {
-      setRestored(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!restored) return;
-    window.localStorage.setItem(
-      POMODORO_KEY,
-      JSON.stringify({ phase, round, endsAt, remainingWhenPaused, taskId }),
-    );
-  }, [restored, phase, round, endsAt, remainingWhenPaused, taskId]);
+  }, [search.item, setTaskId]);
 
   const open = useMemo(() => items.filter((i) => i.status !== "done"), [items]);
-  const task = open.find((i) => i.id === taskId) ?? null;
 
-  const totalSeconds =
-    (phase === "focus"
-      ? settings.focusMinutes
-      : phase === "break"
-        ? settings.breakMinutes
-        : settings.longBreakMinutes) * 60;
-
-  const remaining =
-    remainingWhenPaused !== null
-      ? remainingWhenPaused
-      : endsAt
-        ? Math.max(0, Math.round((endsAt - now) / 1000))
-        : totalSeconds;
-
-  const elapsed = Math.min(totalSeconds, totalSeconds - remaining);
-  const percent = totalSeconds ? Math.min(100, Math.round((elapsed / totalSeconds) * 100)) : 0;
-  const running = endsAt !== null && remainingWhenPaused === null;
-
-  function notify(title: string, body: string) {
-    toast.info(title, { description: body });
-    if (!settings.notificationsEnabled) return;
-    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    try {
-      new Notification(title, { body, tag: "work-os-focus" });
-    } catch {
-      /* notifications are best-effort */
-    }
-  }
-
-  // Warn shortly before the round ends, then announce the switch.
-  useEffect(() => {
-    if (!running) return;
-    const label = task ? `“${task.title}”` : t("focus.notify.thisRound");
-    if (
-      !notifiedRef.current.warn &&
-      remaining <= settings.notifyBeforeEndSeconds &&
-      remaining > 0
-    ) {
-      notifiedRef.current.warn = true;
-      notify(
-        phase === "focus" ? t("focus.notify.endingSoonTitle") : t("focus.notify.breakEndingSoon"),
-        t("focus.notify.minLeftOn", { minutes: Math.max(1, Math.round(remaining / 60)), label }),
-      );
-    }
-    if (!notifiedRef.current.end && remaining === 0) {
-      notifiedRef.current.end = true;
-      const nextPhase: Phase =
-        phase === "focus"
-          ? round % Math.max(1, settings.roundsBeforeLongBreak) === 0
-            ? "longBreak"
-            : "break"
-          : "focus";
-      notify(
-        phase === "focus" ? t("focus.notify.roundCompleteTitle") : t("focus.notify.breakOver"),
-        phase === "focus" ? t("focus.notify.timeForBreak", { label }) : t("focus.notify.backTo", { label }),
-      );
-      if (phase === "focus") {
-        setRound((r) => r + 1);
-        if (task && userId) {
-          const minutes = Math.max(1, settings.focusMinutes);
-          void logCompletedRound(
-            userId,
-            { id: task.id, type: task.type, title: task.title },
-            minutes * 60,
-          )
-            .then(() => {
-              void creditRoundToItem(task).catch(() => undefined);
-              setCompletedRounds((list) => [
-                ...list,
-                { id: Date.now(), title: task.title, minutes },
-              ]);
-            })
-            .catch(() => toast.error(t("focus.notify.roundRecordFailed")));
-        }
-      }
-      setPhase(nextPhase);
-      setEndsAt(null);
-      setRemainingWhenPaused(null);
-      notifiedRef.current = { warn: false, end: false };
-    }
-  }, [remaining, running, phase, round, settings, task, userId]);
-
-  async function start() {
-    if (settings.notificationsEnabled && typeof Notification !== "undefined") {
-      if (Notification.permission === "default") await Notification.requestPermission();
-    }
-    notifiedRef.current = { warn: false, end: false };
-    setRemainingWhenPaused(null);
-    setEndsAt(Date.now() + remaining * 1000);
-  }
-
-  function pause() {
-    setRemainingWhenPaused(remaining);
-    setEndsAt(null);
-  }
-
-  function reset() {
-    notifiedRef.current = { warn: false, end: false };
-    setEndsAt(null);
-    setRemainingWhenPaused(null);
-  }
-
-  function skip() {
-    notifiedRef.current = { warn: false, end: false };
-    setEndsAt(null);
-    setRemainingWhenPaused(null);
-    if (phase === "focus") {
-      setRound((r) => r + 1);
-      setPhase(round % Math.max(1, settings.roundsBeforeLongBreak) === 0 ? "longBreak" : "break");
-    } else {
-      setPhase("focus");
-    }
-  }
 
   return (
     <div className="mx-auto max-w-5xl p-6">
