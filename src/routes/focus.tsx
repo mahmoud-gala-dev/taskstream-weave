@@ -44,6 +44,8 @@ export const Route = createFileRoute("/focus")({
 
 type Phase = "focus" | "break" | "longBreak";
 
+const POMODORO_KEY = "work-os:pomodoro";
+
 function FocusPage() {
   const { settings } = useSettings();
   const t = useT();
