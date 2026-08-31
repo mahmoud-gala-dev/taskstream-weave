@@ -68,13 +68,35 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
 const LOCAL_KEY = "work-os:appearance";
 type Appearance = Pick<
   Settings,
-  "language" | "theme" | "density" | "fontFamily" | "fontScale" | "nightStartHour" | "nightEndHour"
+  | "language"
+  | "theme"
+  | "density"
+  | "fontFamily"
+  | "fontScale"
+  | "nightStartHour"
+  | "nightEndHour"
+  | "nightCity"
 >;
 
 /** True when the local clock is inside the configured night window. */
 export function isNightHour(start: number, end: number, at = new Date()): boolean {
   const h = at.getHours();
   return start <= end ? h >= start && h < end : h >= start || h < end;
+}
+
+/**
+ * Night for the auto theme: real sunset/sunrise of the chosen Arab city, with
+ * the manual hour window as an explicit opt-out / offline fallback.
+ */
+export function isNightNow(
+  s: Pick<Settings, "nightCity" | "nightStartHour" | "nightEndHour">,
+  at = new Date(),
+): boolean {
+  if (s.nightCity && s.nightCity !== "manual") {
+    const byCity = isCityNight(s.nightCity, at);
+    if (byCity !== null) return byCity;
+  }
+  return isNightHour(s.nightStartHour, s.nightEndHour, at);
 }
 
 function readLocalAppearance(): Partial<Appearance> {
