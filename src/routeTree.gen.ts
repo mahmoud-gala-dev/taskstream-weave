@@ -17,12 +17,14 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DocumentationRouteImport } from './routes/documentation'
 import { Route as FocusRouteImport } from './routes/focus'
+import { Route as InstallRouteImport } from './routes/install'
 import { Route as OptimizerRouteImport } from './routes/optimizer'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as TodayRouteImport } from './routes/today'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as ItemItemIdRouteImport } from './routes/item.$itemId'
 
@@ -66,6 +68,11 @@ const FocusRoute = FocusRouteImport.update({
   path: '/focus',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InstallRoute = InstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OptimizerRoute = OptimizerRouteImport.update({
   id: '/optimizer',
   path: '/optimizer',
@@ -96,6 +103,11 @@ const TasksRoute = TasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TodayRoute = TodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TopicsRoute = TopicsRouteImport.update({
   id: '/topics',
   path: '/topics',
@@ -116,12 +128,14 @@ export interface FileRoutesByFullPath {
   '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
+  '/install': typeof InstallRoute
   '/optimizer': typeof OptimizerRoute
   '/report': typeof ReportRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
   '/tasks': typeof TasksRoute
+  '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
 }
@@ -134,12 +148,14 @@ export interface FileRoutesByTo {
   '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
+  '/install': typeof InstallRoute
   '/optimizer': typeof OptimizerRoute
   '/report': typeof ReportRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
   '/tasks': typeof TasksRoute
+  '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
 }
@@ -153,12 +169,14 @@ export interface FileRoutesById {
   '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
+  '/install': typeof InstallRoute
   '/optimizer': typeof OptimizerRoute
   '/report': typeof ReportRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
   '/tasks': typeof TasksRoute
+  '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
 }
@@ -173,12 +191,14 @@ export interface FileRouteTypes {
     | '/daily'
     | '/documentation'
     | '/focus'
+    | '/install'
     | '/optimizer'
     | '/report'
     | '/search'
     | '/settings'
     | '/tables'
     | '/tasks'
+    | '/today'
     | '/topics'
     | '/item/$itemId'
   fileRoutesByTo: FileRoutesByTo
@@ -191,12 +211,14 @@ export interface FileRouteTypes {
     | '/daily'
     | '/documentation'
     | '/focus'
+    | '/install'
     | '/optimizer'
     | '/report'
     | '/search'
     | '/settings'
     | '/tables'
     | '/tasks'
+    | '/today'
     | '/topics'
     | '/item/$itemId'
   id:
@@ -209,12 +231,14 @@ export interface FileRouteTypes {
     | '/daily'
     | '/documentation'
     | '/focus'
+    | '/install'
     | '/optimizer'
     | '/report'
     | '/search'
     | '/settings'
     | '/tables'
     | '/tasks'
+    | '/today'
     | '/topics'
     | '/item/$itemId'
   fileRoutesById: FileRoutesById
@@ -228,12 +252,14 @@ export interface RootRouteChildren {
   DailyRoute: typeof DailyRoute
   DocumentationRoute: typeof DocumentationRoute
   FocusRoute: typeof FocusRoute
+  InstallRoute: typeof InstallRoute
   OptimizerRoute: typeof OptimizerRoute
   ReportRoute: typeof ReportRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   TablesRoute: typeof TablesRoute
   TasksRoute: typeof TasksRoute
+  TodayRoute: typeof TodayRoute
   TopicsRoute: typeof TopicsRoute
   ItemItemIdRoute: typeof ItemItemIdRoute
 }
@@ -296,6 +322,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FocusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/install': {
+      id: '/install'
+      path: '/install'
+      fullPath: '/install'
+      preLoaderRoute: typeof InstallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/optimizer': {
       id: '/optimizer'
       path: '/optimizer'
@@ -338,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/today': {
+      id: '/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof TodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/topics': {
       id: '/topics'
       path: '/topics'
@@ -364,12 +404,14 @@ const rootRouteChildren: RootRouteChildren = {
   DailyRoute: DailyRoute,
   DocumentationRoute: DocumentationRoute,
   FocusRoute: FocusRoute,
+  InstallRoute: InstallRoute,
   OptimizerRoute: OptimizerRoute,
   ReportRoute: ReportRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   TablesRoute: TablesRoute,
   TasksRoute: TasksRoute,
+  TodayRoute: TodayRoute,
   TopicsRoute: TopicsRoute,
   ItemItemIdRoute: ItemItemIdRoute,
 }

@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
+  Download,
   CalendarDays,
   CalendarClock,
   CheckSquare,
@@ -23,6 +24,7 @@ import { useEffect, type ReactNode } from "react";
 import { GlobalContextMenu } from "@/components/global-context-menu";
 import { PageHighlighter } from "@/components/page-highlighter";
 import { PageStickyNotes } from "@/components/page-sticky-notes";
+import { QuickCapture } from "@/components/quick-capture";
 import { Button } from "@/components/ui/button";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { useT, type MessageKey } from "@/lib/i18n";
 
 const NAV = [
-  { to: "/", key: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/", key: "nav.today", icon: LayoutDashboard },
   { to: "/tables", key: "nav.tables", icon: Table2 },
   { to: "/focus", key: "nav.focus", icon: Timer },
   { to: "/report", key: "nav.report", icon: BarChart3 },
@@ -49,6 +51,7 @@ const NAV = [
   { to: "/topics", key: "nav.topics", icon: Tags },
   { to: "/documentation", key: "nav.documentation", icon: FileText },
   { to: "/search", key: "nav.search", icon: Search },
+  { to: "/install", key: "nav.install", icon: Download },
   { to: "/settings", key: "nav.settings", icon: Settings },
 ] as const satisfies ReadonlyArray<{ to: string; key: MessageKey; icon: typeof Timer }>;
 
@@ -149,6 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
       <PageStickyNotes />
       <PageHighlighter />
+      <QuickCapture />
     </div>
     </GlobalContextMenu>
   );

@@ -87,6 +87,15 @@ function ReportPage() {
       touched: perItem.size,
       avg,
       days,
+      estimates: items
+        .filter((i) => i.type === "task" && (i.estimatedRounds ?? 0) > 0)
+        .map((i) => ({
+          item: i,
+          estimated: i.estimatedRounds ?? 0,
+          actual: perItem.get(i.id)?.rounds ?? 0,
+        }))
+        .sort((a, b) => Math.abs(b.actual - b.estimated) - Math.abs(a.actual - a.estimated))
+        .slice(0, 12),
       tasks: rows("task"),
       topics: rows("topic"),
       updatedAt: now,
@@ -132,6 +141,42 @@ function ReportPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">{t("report.estimateVsActual")}</h2>
+        {report.estimates.length ? (
+          <ul className="mt-3 space-y-2">
+            {report.estimates.map(({ item, estimated, actual }) => {
+              const accuracy = Math.round((Math.min(estimated, actual) / Math.max(estimated, actual || 1)) * 100);
+              return (
+                <li
+                  key={item.id}
+                  className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-2 text-sm"
+                >
+                  <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                  <span className="text-xs text-muted-foreground" dir="ltr">
+                    {t("report.estimated")} {estimated} · {t("report.actual")} {actual}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {t("report.accuracy")} {accuracy}% ·{" "}
+                    {actual <= estimated ? t("report.overEstimate") : t("report.underEstimate")}
+                  </span>
+                  <span className="w-32">
+                    <span className="block h-1.5 overflow-hidden rounded-full bg-muted">
+                      <span
+                        className={`block h-full rounded-full ${actual > estimated ? "bg-destructive" : "bg-primary"}`}
+                        style={{ width: `${Math.min(100, (actual / Math.max(1, estimated)) * 100)}%` }}
+                      />
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">{t("report.noEstimates")}</p>
+        )}
       </section>
 
       <Breakdown title={t("report.tasks")} rows={report.tasks} />

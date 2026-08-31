@@ -227,6 +227,29 @@ function ItemWorkspace() {
           </select>
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="dueDate">{t("plan.due")}</Label>
+          <input
+            id="dueDate"
+            type="date"
+            value={item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : ""}
+            onChange={(e) =>
+              patch({ dueDate: e.target.value ? new Date(`${e.target.value}T12:00:00`).getTime() : null })
+            }
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="estimatedRounds">{t("plan.estimate")}</Label>
+          <input
+            id="estimatedRounds"
+            type="number"
+            min={0}
+            value={item.estimatedRounds ?? ""}
+            onChange={(e) => patch({ estimatedRounds: e.target.value ? Number(e.target.value) : null })}
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="progress">{t("item.progress", { value: item.progress })}</Label>
           <input
             id="progress"

@@ -73,6 +73,8 @@ export type WorkItem = Base & {
   priority: Priority;
   progress: number;
   dueDate?: number | null;
+  /** Planned number of Pomodoro rounds, compared with actual in the report. */
+  estimatedRounds?: number | null;
   icon?: string;
   color?: string;
   parentTopicId?: ID | null;
