@@ -1,13 +1,16 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  BarChart3,
   CalendarClock,
   CheckSquare,
   FileText,
   LayoutDashboard,
   LogOut,
+  Moon,
   Search,
   Settings,
   Sparkles,
+  Sun,
   Table2,
 
   Tags,
@@ -23,6 +26,8 @@ import { Button } from "@/components/ui/button";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { usePomodoro } from "@/lib/pomodoro-store";
+import { useSettings } from "@/lib/settings-store";
 import { useWorkspace } from "@/lib/workspace-store";
 import { elapsedSeconds, formatDuration } from "@/lib/sessions";
 import { useTick } from "@/hooks/useTick";
