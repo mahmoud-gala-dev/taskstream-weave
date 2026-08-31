@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DocumentationRouteImport } from './routes/documentation'
 import { Route as FocusRouteImport } from './routes/focus'
 import { Route as OptimizerRouteImport } from './routes/optimizer'
+import { Route as ReportRouteImport } from './routes/report'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TablesRouteImport } from './routes/tables'
@@ -58,6 +59,11 @@ const OptimizerRoute = OptimizerRouteImport.update({
   path: '/optimizer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportRoute = ReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
   '/optimizer': typeof OptimizerRoute
+  '/report': typeof ReportRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
   '/optimizer': typeof OptimizerRoute
+  '/report': typeof ReportRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
   '/optimizer': typeof OptimizerRoute
+  '/report': typeof ReportRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/tables': typeof TablesRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/documentation'
     | '/focus'
     | '/optimizer'
+    | '/report'
     | '/search'
     | '/settings'
     | '/tables'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/documentation'
     | '/focus'
     | '/optimizer'
+    | '/report'
     | '/search'
     | '/settings'
     | '/tables'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/documentation'
     | '/focus'
     | '/optimizer'
+    | '/report'
     | '/search'
     | '/settings'
     | '/tables'
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   DocumentationRoute: typeof DocumentationRoute
   FocusRoute: typeof FocusRoute
   OptimizerRoute: typeof OptimizerRoute
+  ReportRoute: typeof ReportRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   TablesRoute: typeof TablesRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OptimizerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/report': {
+      id: '/report'
+      path: '/report'
+      fullPath: '/report'
+      preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
@@ -303,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocumentationRoute: DocumentationRoute,
   FocusRoute: FocusRoute,
   OptimizerRoute: OptimizerRoute,
+  ReportRoute: ReportRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   TablesRoute: TablesRoute,

@@ -33,6 +33,7 @@ const NAV = [
   { to: "/", key: "nav.dashboard", icon: LayoutDashboard },
   { to: "/tables", key: "nav.tables", icon: Table2 },
   { to: "/focus", key: "nav.focus", icon: Timer },
+  { to: "/report", key: "nav.report", icon: BarChart3 },
   { to: "/assistant", key: "nav.assistant", icon: Sparkles },
   { to: "/optimizer", key: "nav.optimizer", icon: Wand2 },
   { to: "/active", key: "nav.active", icon: CalendarClock },
@@ -42,6 +43,7 @@ const NAV = [
   { to: "/search", key: "nav.search", icon: Search },
   { to: "/settings", key: "nav.settings", icon: Settings },
 ] as const satisfies ReadonlyArray<{ to: string; key: MessageKey; icon: typeof Timer }>;
+
 
 
 export function AppShell({ children }: { children: ReactNode }) {
