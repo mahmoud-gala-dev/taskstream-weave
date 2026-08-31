@@ -13,6 +13,7 @@ import { Toaster } from "../components/ui/sonner";
 import { AuthProvider } from "../hooks/useAuth";
 import { SettingsProvider } from "../lib/settings-store";
 import { WorkspaceProvider } from "../lib/workspace-store";
+import { PomodoroProvider } from "../lib/pomodoro-store";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
