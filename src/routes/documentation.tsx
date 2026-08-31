@@ -183,12 +183,12 @@ function DocumentationPage() {
   const stats = useMemo(() => {
     const count = (kind: Entry["kind"]) => entries.filter((e) => e.kind === kind).length;
     return [
-      { label: "Entries", value: entries.length },
-      { label: "Notes", value: count("note") },
-      { label: "Files", value: count("attachment") },
-      { label: "Sessions", value: count("session") },
+      { label: t("ui.stats.entries"), value: entries.length },
+      { label: t("ui.stats.notes"), value: count("note") },
+      { label: t("ui.stats.files"), value: count("attachment") },
+      { label: t("ui.stats.sessions"), value: count("session") },
     ];
-  }, [entries]);
+  }, [entries, t]);
 
   const { page, setPage, pageCount, pageRows, total } = usePagination(entries, 20);
 

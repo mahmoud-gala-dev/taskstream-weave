@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Pagination, StatStrip, usePagination } from "@/components/list-pagination";
 import { Input } from "@/components/ui/input";
 import type { ItemStatus, ItemType } from "@/lib/types";
+import { elapsedSeconds, formatDuration } from "@/lib/sessions";
 import { useWorkspace } from "@/lib/workspace-store";
 import { useT, type MessageKey } from "@/lib/i18n";
 
@@ -28,9 +29,22 @@ export function ItemLibrary({
 }) {
   const t = useT();
   const title = t(titleKey);
-  const { items, placements, tables } = useWorkspace();
+  const { items, placements, tables, sessions } = useWorkspace();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<ItemStatus | "all">("all");
+
+  // Focus rounds and tracked time per item, derived from the work sessions
+  // written whenever a Pomodoro round completes.
+  const effort = useMemo(() => {
+    const map = new Map<string, { rounds: number; seconds: number }>();
+    for (const session of sessions) {
+      const entry = map.get(session.itemId) ?? { rounds: 0, seconds: 0 };
+      entry.seconds += elapsedSeconds(session);
+      if (session.title.endsWith("— focus round")) entry.rounds += 1;
+      map.set(session.itemId, entry);
+    }
+    return map;
+  }, [sessions]);
 
   const tableName = useMemo(() => new Map(tables.map((t) => [t.id, t.name])), [tables]);
 
@@ -57,9 +71,17 @@ export function ItemLibrary({
       { label: t("status.all"), value: all.length },
       { label: t("status.in_progress"), value: active },
       { label: t("status.done"), value: done },
-      { label: "Avg progress", value: `${avg}%` },
+      { label: t("ui.stats.avgProgress"), value: `${avg}%` },
+      {
+        label: t("ui.stats.focusRounds"),
+        value: all.reduce((sum, i) => sum + (effort.get(i.id)?.rounds ?? 0), 0),
+      },
+      {
+        label: t("ui.stats.tracked"),
+        value: formatDuration(all.reduce((sum, i) => sum + (effort.get(i.id)?.seconds ?? 0), 0)),
+      },
     ];
-  }, [all, t]);
+  }, [all, effort, t]);
 
   const { page, setPage, pageCount, pageRows, total } = usePagination(list, 10);
 
@@ -111,6 +133,14 @@ export function ItemLibrary({
                     {t(`status.${i.status}` as MessageKey)} · {i.priority}
                   </span>
                   <span className="w-10 text-end text-xs text-muted-foreground">{i.progress}%</span>
+                  {effort.get(i.id) ? (
+                    <span className="text-xs text-muted-foreground" dir="ltr">
+                      {t("ui.item.roundsTracked", {
+                        rounds: effort.get(i.id)?.rounds ?? 0,
+                        time: formatDuration(effort.get(i.id)?.seconds ?? 0),
+                      })}
+                    </span>
+                  ) : null}
                 </div>
                 {where.length ? (
                   <p className="mt-1 text-xs text-muted-foreground">

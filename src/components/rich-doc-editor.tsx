@@ -134,8 +134,8 @@ export function RichDocEditor({
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
           <AlignJustify className="size-4" aria-hidden />
           <select
-            aria-label="Line spacing"
-            title="Line spacing"
+            aria-label={t("ui.editor.lineSpacing")}
+            title={t("ui.editor.lineSpacing")}
             value={lineHeight}
             onChange={(event) => setLineHeight(Number(event.target.value))}
             className="h-7 rounded-md border border-input bg-background px-1 text-xs"
@@ -148,8 +148,8 @@ export function RichDocEditor({
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
           <MoveVertical className="size-4" aria-hidden />
           <select
-            aria-label="Paragraph spacing"
-            title="Paragraph spacing"
+            aria-label={t("ui.editor.paragraphSpacing")}
+            title={t("ui.editor.paragraphSpacing")}
             value={blockSpacing}
             onChange={(event) => setBlockSpacing(Number(event.target.value))}
             className="h-7 rounded-md border border-input bg-background px-1 text-xs"

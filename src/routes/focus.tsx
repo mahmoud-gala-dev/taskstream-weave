@@ -8,7 +8,7 @@ import { AppShell } from "@/components/app-shell";
 import { FocusTaskTable } from "@/components/focus-task-table";
 import { Button } from "@/components/ui/button";
 import { useTick } from "@/hooks/useTick";
-import { formatDuration, logCompletedRound } from "@/lib/sessions";
+import { creditRoundToItem, formatDuration, logCompletedRound } from "@/lib/sessions";
 import { useSettings } from "@/lib/settings-store";
 import { useT } from "@/lib/i18n";
 import { useWorkspace } from "@/lib/workspace-store";
@@ -172,12 +172,13 @@ function FocusPage() {
             { id: task.id, type: task.type, title: task.title },
             minutes * 60,
           )
-            .then(() =>
+            .then(() => {
+              void creditRoundToItem(task).catch(() => undefined);
               setCompletedRounds((list) => [
                 ...list,
                 { id: Date.now(), title: task.title, minutes },
-              ]),
-            )
+              ]);
+            })
             .catch(() => toast.error(t("focus.notify.roundRecordFailed")));
         }
       }

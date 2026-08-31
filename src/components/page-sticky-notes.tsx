@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { COL, createRecord, deleteRecord, updateRecord, watchUserCollection } from "@/lib/db";
 import type { PageNote } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 import { useWorkspace } from "@/lib/workspace-store";
 
 const ADD_EVENT = "work-os:add-page-note";
@@ -17,6 +18,7 @@ export function requestPageNote() {
 /** Draggable notes are fixed to the viewport and persist for the signed-in user. */
 export function PageStickyNotes() {
   const { userId } = useWorkspace();
+  const t = useT();
   const [notes, setNotes] = useState<PageNote[]>([]);
 
   useEffect(() => {
@@ -25,9 +27,9 @@ export function PageStickyNotes() {
     let unsubscribe: (() => void) | undefined;
     void watchUserCollection<PageNote>(COL.pageNotes, userId, (rows) => {
       if (active) setNotes(rows);
-    }, () => toast.error("Could not load page notes."))
+    }, () => toast.error(t("ui.notes.loadFailed")))
       .then((next) => (active ? (unsubscribe = next) : next()))
-      .catch(() => toast.error("Could not load page notes."));
+      .catch(() => toast.error(t("ui.notes.loadFailed")));
     return () => {
       active = false;
       unsubscribe?.();
@@ -42,7 +44,7 @@ export function PageStickyNotes() {
         body: "",
         x: Math.max(16, window.innerWidth - 336 - offset * 18),
         y: 80 + offset * 24,
-      }).catch(() => toast.error("Could not create the sticky note."));
+      }).catch(() => toast.error(t("ui.notes.createFailed")));
     };
     window.addEventListener(ADD_EVENT, add);
     return () => window.removeEventListener(ADD_EVENT, add);
@@ -58,13 +60,13 @@ export function PageStickyNotes() {
       const y = 80 + Math.floor(index / perRow) * rowHeight;
       if (note.x === x && note.y === y) return;
       void updateRecord<PageNote>(COL.pageNotes, note.id, { x, y }).catch(() =>
-        toast.error("Could not arrange the notes."),
+        toast.error(t("ui.notes.arrangeFailed")),
       );
     });
   }
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-40" aria-label="Page sticky notes">
+    <div className="pointer-events-none fixed inset-0 z-40" aria-label={t("ui.notes.region")}>
       {notes.map((note) => <DraggableNote key={note.id} note={note} />)}
       {notes.length > 1 ? (
         <Button
@@ -72,8 +74,8 @@ export function PageStickyNotes() {
           size="icon"
           variant="secondary"
           className="pointer-events-auto fixed bottom-20 end-5 shadow-lg"
-          aria-label="Arrange sticky notes"
-          title="Arrange sticky notes"
+          aria-label={t("ui.notes.arrange")}
+          title={t("ui.notes.arrange")}
           onClick={tidy}
         >
           <LayoutGrid className="size-4" />
@@ -83,8 +85,8 @@ export function PageStickyNotes() {
         type="button"
         size="icon"
         className="pointer-events-auto fixed bottom-5 end-5 shadow-lg"
-        aria-label="Add page sticky note"
-        title="Add page sticky note"
+        aria-label={t("ui.notes.add")}
+        title={t("ui.notes.add")}
         onClick={requestPageNote}
       >
         <Plus className="size-4" />
@@ -94,6 +96,7 @@ export function PageStickyNotes() {
 }
 
 function DraggableNote({ note }: { note: PageNote }) {
+  const t = useT();
   const [position, setPosition] = useState({ x: note.x, y: note.y });
   const [body, setBody] = useState(note.body);
   const drag = useRef<{ pointerId: number; dx: number; dy: number } | null>(null);
@@ -139,19 +142,19 @@ function DraggableNote({ note }: { note: PageNote }) {
           drag.current = null;
           event.currentTarget.releasePointerCapture(event.pointerId);
           void updateRecord<PageNote>(COL.pageNotes, note.id, positionRef.current).catch(() =>
-            toast.error("Could not save the note position."),
+            toast.error(t("ui.notes.positionFailed")),
           );
         }}
       >
         <GripVertical className="size-4 text-muted-foreground" />
         <StickyNote className="size-3.5" />
-        <span className="flex-1">Sticky note</span>
+        <span className="flex-1">{t("ui.notes.title")}</span>
         <Button
           type="button"
           size="icon"
           variant="ghost"
           className="size-7"
-          aria-label="Delete sticky note"
+          aria-label={t("ui.notes.delete")}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => void deleteRecord(COL.pageNotes, note.id)}
         >
@@ -164,12 +167,12 @@ function DraggableNote({ note }: { note: PageNote }) {
         onBlur={() => {
           if (body !== note.body) {
             void updateRecord<PageNote>(COL.pageNotes, note.id, { body }).catch(() =>
-              toast.error("Could not save the sticky note."),
+              toast.error(t("ui.notes.saveFailed")),
             );
           }
         }}
-        placeholder="Write a note…"
-        aria-label="Sticky note text"
+        placeholder={t("ui.notes.placeholder")}
+        aria-label={t("ui.notes.text")}
         className="min-h-32 resize-none rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0"
       />
     </article>
