@@ -388,6 +388,7 @@ export const messages = {
     ...uiMessages.en,
     ...reportMessages.en,
     ...todayMessages.en,
+    ...shortcutsMessages.en,
     ...goalsMessages.en,
   },
   ar: {
@@ -399,6 +400,7 @@ export const messages = {
     ...uiMessages.ar,
     ...reportMessages.ar,
     ...todayMessages.ar,
+    ...shortcutsMessages.ar,
     ...goalsMessages.ar,
   },
 } as const;
