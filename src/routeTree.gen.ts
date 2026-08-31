@@ -17,6 +17,7 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DocumentationRouteImport } from './routes/documentation'
 import { Route as FocusRouteImport } from './routes/focus'
+import { Route as InstallRouteImport } from './routes/install'
 import { Route as OptimizerRouteImport } from './routes/optimizer'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as SearchRouteImport } from './routes/search'
@@ -65,6 +66,11 @@ const DocumentationRoute = DocumentationRouteImport.update({
 const FocusRoute = FocusRouteImport.update({
   id: '/focus',
   path: '/focus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstallRoute = InstallRouteImport.update({
+  id: '/install',
+  path: '/install',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OptimizerRoute = OptimizerRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
+  '/install': typeof InstallRoute
   '/optimizer': typeof OptimizerRoute
   '/report': typeof ReportRoute
   '/search': typeof SearchRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
+  '/install': typeof InstallRoute
   '/optimizer': typeof OptimizerRoute
   '/report': typeof ReportRoute
   '/search': typeof SearchRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/daily': typeof DailyRoute
   '/documentation': typeof DocumentationRoute
   '/focus': typeof FocusRoute
+  '/install': typeof InstallRoute
   '/optimizer': typeof OptimizerRoute
   '/report': typeof ReportRoute
   '/search': typeof SearchRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/daily'
     | '/documentation'
     | '/focus'
+    | '/install'
     | '/optimizer'
     | '/report'
     | '/search'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/daily'
     | '/documentation'
     | '/focus'
+    | '/install'
     | '/optimizer'
     | '/report'
     | '/search'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/daily'
     | '/documentation'
     | '/focus'
+    | '/install'
     | '/optimizer'
     | '/report'
     | '/search'
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   DailyRoute: typeof DailyRoute
   DocumentationRoute: typeof DocumentationRoute
   FocusRoute: typeof FocusRoute
+  InstallRoute: typeof InstallRoute
   OptimizerRoute: typeof OptimizerRoute
   ReportRoute: typeof ReportRoute
   SearchRoute: typeof SearchRoute
@@ -307,6 +320,13 @@ declare module '@tanstack/react-router' {
       path: '/focus'
       fullPath: '/focus'
       preLoaderRoute: typeof FocusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/install': {
+      id: '/install'
+      path: '/install'
+      fullPath: '/install'
+      preLoaderRoute: typeof InstallRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/optimizer': {
@@ -384,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   DailyRoute: DailyRoute,
   DocumentationRoute: DocumentationRoute,
   FocusRoute: FocusRoute,
+  InstallRoute: InstallRoute,
   OptimizerRoute: OptimizerRoute,
   ReportRoute: ReportRoute,
   SearchRoute: SearchRoute,

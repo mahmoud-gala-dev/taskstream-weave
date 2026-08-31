@@ -147,8 +147,33 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const percent = totalSeconds ? Math.min(100, Math.round((elapsed / totalSeconds) * 100)) : 0;
   const running = endsAt !== null && remainingWhenPaused === null;
 
-  function notify(title: string, body: string) {
+  function chime() {
+    try {
+      const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) return;
+      const ctx = new Ctor();
+      const now = ctx.currentTime;
+      [880, 1320].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, now + i * 0.25);
+        gain.gain.exponentialRampToValueAtTime(0.25, now + i * 0.25 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.25 + 0.22);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.25);
+        osc.stop(now + i * 0.25 + 0.25);
+      });
+      setTimeout(() => void ctx.close().catch(() => undefined), 1200);
+    } catch {
+      /* sound is best-effort */
+    }
+  }
+
+  function notify(title: string, body: string, sound = false) {
     toast.info(title, { description: body });
+    if (sound) chime();
     if (!settings.notificationsEnabled) return;
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
     try {
@@ -181,6 +206,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         phase === "focus"
           ? t("focus.notify.timeForBreak", { label })
           : t("focus.notify.backTo", { label }),
+        true,
       );
       if (phase === "focus") {
         setRound((r) => r + 1);
@@ -201,6 +227,24 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remaining, running, phase, round, settings, task, userId]);
+
+  // Tab title mirrors the countdown so the remaining time stays visible on any
+  // page and even when the tab is in the background.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const base = document.title.replace(/^\[[^\]]+\]\s*/, "");
+    if (!running && remaining === totalSeconds) {
+      document.title = base;
+      return;
+    }
+    const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+    const ss = String(remaining % 60).padStart(2, "0");
+    const icon = phase === "focus" ? "\u25B6" : "\u2615";
+    document.title = `[${icon} ${mm}:${ss}] ${base}`;
+    return () => {
+      document.title = base;
+    };
+  }, [remaining, running, totalSeconds, phase]);
 
   const value = useMemo<Ctx>(
     () => ({
