@@ -123,13 +123,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
+        <PomodoroSummary />
         <RunningSummary />
         <div className="mt-auto space-y-2 pt-4">
           <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+          <DarkModeToggle />
           <Button variant="outline" size="sm" className="w-full" onClick={() => void signOut()}>
             <LogOut className="size-4" /> {t("nav.signOut")}
           </Button>
         </div>
+
       </aside>
       <main className="min-w-0 flex-1">
         <div className="flex items-center gap-2 border-b border-border px-4 py-3 md:hidden">
