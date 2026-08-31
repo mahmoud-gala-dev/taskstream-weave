@@ -203,19 +203,38 @@ html[lang="ar"] select {
   font-family: "Cairo", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
-/* Distinctive Arabic typography for the workspace grid and detail pages. */
+/* Distinctive Arabic typography for the workspace grid and detail pages.
+   Applied whatever the interface language is: Latin glyphs come from the UI
+   stack first, and any Arabic glyph falls through to Tajawal / Cairo. */
+.work-os-arabic-surface,
+.work-os-arabic-surface input,
+.work-os-arabic-surface textarea,
+.work-os-arabic-surface button,
+.work-os-arabic-surface select,
+.work-os-arabic-surface [contenteditable="true"] {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Tajawal", "Cairo", sans-serif;
+  letter-spacing: 0;
+}
+
+.work-os-arabic-surface h1,
+.work-os-arabic-surface h2,
+.work-os-arabic-surface h3 {
+  font-family: ui-sans-serif, system-ui, "Lemonada", "Cairo", sans-serif;
+  font-weight: 600;
+}
+
+/* In the Arabic interface the distinctive faces lead the stack. */
 html[lang="ar"] .work-os-arabic-surface,
 html[lang="ar"] .work-os-arabic-surface input,
 html[lang="ar"] .work-os-arabic-surface textarea,
 html[lang="ar"] .work-os-arabic-surface button,
-html[lang="ar"] .work-os-arabic-surface select {
+html[lang="ar"] .work-os-arabic-surface select,
+html[lang="ar"] .work-os-arabic-surface [contenteditable="true"] {
   font-family: "Tajawal", "Cairo", ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0;
 }
 
 html[lang="ar"] .work-os-arabic-surface h1,
 html[lang="ar"] .work-os-arabic-surface h2,
 html[lang="ar"] .work-os-arabic-surface h3 {
   font-family: "Lemonada", "Cairo", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 600;
 }
