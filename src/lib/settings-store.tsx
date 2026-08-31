@@ -10,9 +10,11 @@ export type Settings = Base & {
   language: "en" | "ar";
   /** "auto" follows local clock (night hours), "system" follows the OS setting. */
   theme: "light" | "dark" | "system" | "auto";
-  /** Hours (0-23) that count as night for the auto theme. */
+  /** Hours (0-23) that count as night when nightCity is "manual". */
   nightStartHour: number;
   nightEndHour: number;
+  /** Arab city whose real sunset/sunrise drives the auto theme ("manual" = hours). */
+  nightCity: string;
   density: "compact" | "comfortable" | "large";
   /** Global UI font family and scale, applied to <html>. */
   fontFamily: "sans" | "serif" | "mono";
