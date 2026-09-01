@@ -28,6 +28,7 @@ import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as ItemItemIdRouteImport } from './routes/item.$itemId'
+import { Route as ApiPublicPushCronRouteImport } from './routes/api/public/push-cron'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -124,6 +125,11 @@ const ItemItemIdRoute = ItemItemIdRouteImport.update({
   path: '/item/$itemId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPushCronRoute = ApiPublicPushCronRouteImport.update({
+  id: '/api/public/push-cron',
+  path: '/api/public/push-cron',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
+  '/api/public/push-cron': typeof ApiPublicPushCronRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
+  '/api/public/push-cron': typeof ApiPublicPushCronRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/today': typeof TodayRoute
   '/topics': typeof TopicsRoute
   '/item/$itemId': typeof ItemItemIdRoute
+  '/api/public/push-cron': typeof ApiPublicPushCronRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/topics'
     | '/item/$itemId'
+    | '/api/public/push-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/topics'
     | '/item/$itemId'
+    | '/api/public/push-cron'
   id:
     | '__root__'
     | '/'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/topics'
     | '/item/$itemId'
+    | '/api/public/push-cron'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -275,6 +287,7 @@ export interface RootRouteChildren {
   TodayRoute: typeof TodayRoute
   TopicsRoute: typeof TopicsRoute
   ItemItemIdRoute: typeof ItemItemIdRoute
+  ApiPublicPushCronRoute: typeof ApiPublicPushCronRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -412,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItemItemIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/push-cron': {
+      id: '/api/public/push-cron'
+      path: '/api/public/push-cron'
+      fullPath: '/api/public/push-cron'
+      preLoaderRoute: typeof ApiPublicPushCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   TodayRoute: TodayRoute,
   TopicsRoute: TopicsRoute,
   ItemItemIdRoute: ItemItemIdRoute,
+  ApiPublicPushCronRoute: ApiPublicPushCronRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
