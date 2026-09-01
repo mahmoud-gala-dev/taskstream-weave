@@ -49,5 +49,45 @@ export function ReminderScheduler() {
     });
   }, [reminders]);
 
+  // Real Web Push: register this device so the server can wake it while the app is closed.
+  useEffect(() => {
+    const ownerKey = user?.uid;
+    if (!ownerKey || !settings.notificationsEnabled) return;
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { publicKey } = await getPushPublicKey();
+        if (!publicKey || cancelled) return;
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        const subscription =
+          existing ??
+          (await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+          }));
+        const json = subscription.toJSON();
+        if (cancelled || !json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return;
+        await savePushSubscription({
+          data: {
+            ownerKey,
+            endpoint: json.endpoint,
+            p256dh: json.keys.p256dh,
+            auth: json.keys.auth,
+          },
+        });
+      } catch {
+        /* push unsupported or blocked — the in-tab scheduler still runs */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, settings.notificationsEnabled]);
+
+
   return null;
 }
