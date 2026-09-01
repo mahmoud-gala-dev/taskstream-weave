@@ -70,13 +70,13 @@ export function ReminderScheduler() {
             applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
           }));
         const json = subscription.toJSON();
-        if (cancelled || !json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return;
+        if (cancelled || !json.endpoint || !json.keys?.['p256dh'] || !json.keys?.['auth']) return;
         await savePushSubscription({
           data: {
             ownerKey,
             endpoint: json.endpoint,
-            p256dh: json.keys.p256dh,
-            auth: json.keys.auth,
+            p256dh: json.keys['p256dh'],
+            auth: json.keys['auth'],
           },
         });
       } catch {
