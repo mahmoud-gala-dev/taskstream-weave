@@ -1,10 +1,21 @@
 import { useEffect, useMemo } from "react";
 
+import { useAuth } from "@/hooks/useAuth";
+import { getPushPublicKey, savePushSubscription } from "@/lib/push.functions";
 import { completedRoundsForItem } from "@/lib/sessions";
 import { useSettings } from "@/lib/settings-store";
 import { useWorkspace } from "@/lib/workspace-store";
 
 type Reminder = { id: string; at: number; title: string; body: string; sent: boolean };
+
+function urlBase64ToUint8Array(value: string): Uint8Array {
+  const base64 = (value + "=".repeat((4 - (value.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
 
 /** Mirrors due-task reminders into the service worker and checks while the app is open. */
 export function ReminderScheduler() {
