@@ -24,6 +24,20 @@ export const shortcutsMessages = {
     "shortcuts.panel": "Open this panel",
     "shortcuts.escape": "Close dialogs",
     "shortcuts.saved": "Shortcut updated",
+    "shortcuts.settingsTitle": "Detailed settings",
+    "shortcuts.sessionSection": "Session settings",
+    "shortcuts.notifySection": "Notification alerts",
+    "shortcuts.focusMinutes": "Focus round (min)",
+    "shortcuts.breakMinutes": "Short break (min)",
+    "shortcuts.longBreakMinutes": "Long break (min)",
+    "shortcuts.roundsBeforeLongBreak": "Rounds before long break",
+    "shortcuts.notifyBeforeEnd": "Alert before round ends (sec)",
+    "shortcuts.notificationsEnabled": "Enable reminders and alerts",
+    "shortcuts.pushHint":
+      "Allow notifications to receive real push reminders for overdue rounds and due dates, even when the app is closed.",
+    "shortcuts.allowNotifications": "Allow notifications",
+    "shortcuts.moreSettings": "Open full settings",
+
   },
   ar: {
     "shortcuts.open": "اختصارات لوحة المفاتيح",
