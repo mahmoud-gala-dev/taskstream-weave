@@ -24,6 +24,20 @@ export const shortcutsMessages = {
     "shortcuts.panel": "Open this panel",
     "shortcuts.escape": "Close dialogs",
     "shortcuts.saved": "Shortcut updated",
+    "shortcuts.settingsTitle": "Detailed settings",
+    "shortcuts.sessionSection": "Session settings",
+    "shortcuts.notifySection": "Notification alerts",
+    "shortcuts.focusMinutes": "Focus round (min)",
+    "shortcuts.breakMinutes": "Short break (min)",
+    "shortcuts.longBreakMinutes": "Long break (min)",
+    "shortcuts.roundsBeforeLongBreak": "Rounds before long break",
+    "shortcuts.notifyBeforeEnd": "Alert before round ends (sec)",
+    "shortcuts.notificationsEnabled": "Enable reminders and alerts",
+    "shortcuts.pushHint":
+      "Allow notifications to receive real push reminders for overdue rounds and due dates, even when the app is closed.",
+    "shortcuts.allowNotifications": "Allow notifications",
+    "shortcuts.moreSettings": "Open full settings",
+
   },
   ar: {
     "shortcuts.open": "اختصارات لوحة المفاتيح",
@@ -46,5 +60,19 @@ export const shortcutsMessages = {
     "shortcuts.panel": "فتح هذه اللوحة",
     "shortcuts.escape": "إغلاق النوافذ",
     "shortcuts.saved": "تم تحديث الاختصار",
+    "shortcuts.settingsTitle": "إعدادات تفصيلية",
+    "shortcuts.sessionSection": "إعدادات الجلسة",
+    "shortcuts.notifySection": "تنبيهات الإشعارات",
+    "shortcuts.focusMinutes": "طول جولة التركيز (دقيقة)",
+    "shortcuts.breakMinutes": "استراحة قصيرة (دقيقة)",
+    "shortcuts.longBreakMinutes": "استراحة طويلة (دقيقة)",
+    "shortcuts.roundsBeforeLongBreak": "عدد الجولات قبل الاستراحة الطويلة",
+    "shortcuts.notifyBeforeEnd": "تنبيه قبل نهاية الجولة (ثانية)",
+    "shortcuts.notificationsEnabled": "تفعيل التذكيرات والتنبيهات",
+    "shortcuts.pushHint":
+      "اسمح بالإشعارات لتصلك تذكيرات Push حقيقية بالجولات المتأخرة ومواعيد الاستحقاق حتى لو كان التطبيق مغلقًا.",
+    "shortcuts.allowNotifications": "السماح بالإشعارات",
+    "shortcuts.moreSettings": "فتح كل الإعدادات",
+
   },
 } as const;

@@ -1,15 +1,28 @@
 import { useEffect, useMemo } from "react";
 
+import { useAuth } from "@/hooks/useAuth";
+import { getPushPublicKey, savePushSubscription } from "@/lib/push.functions";
 import { completedRoundsForItem } from "@/lib/sessions";
 import { useSettings } from "@/lib/settings-store";
 import { useWorkspace } from "@/lib/workspace-store";
 
 type Reminder = { id: string; at: number; title: string; body: string; sent: boolean };
 
+function urlBase64ToUint8Array(value: string): Uint8Array {
+  const base64 = (value + "=".repeat((4 - (value.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
+
 /** Mirrors due-task reminders into the service worker and checks while the app is open. */
 export function ReminderScheduler() {
   const { items, sessions } = useWorkspace();
   const { settings } = useSettings();
+  const { user } = useAuth();
+
   const reminders = useMemo<Reminder[]>(() => {
     if (!settings.notificationsEnabled) return [];
     const now = Date.now();
@@ -35,6 +48,46 @@ export function ReminderScheduler() {
       await periodic.periodicSync?.register("work-os-reminders", { minInterval: 15 * 60_000 }).catch(() => undefined);
     });
   }, [reminders]);
+
+  // Real Web Push: register this device so the server can wake it while the app is closed.
+  useEffect(() => {
+    const ownerKey = user?.uid;
+    if (!ownerKey || !settings.notificationsEnabled) return;
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { publicKey } = await getPushPublicKey();
+        if (!publicKey || cancelled) return;
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        const subscription =
+          existing ??
+          (await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+          }));
+        const json = subscription.toJSON();
+        if (cancelled || !json.endpoint || !json.keys?.['p256dh'] || !json.keys?.['auth']) return;
+        await savePushSubscription({
+          data: {
+            ownerKey,
+            endpoint: json.endpoint,
+            p256dh: json.keys['p256dh'],
+            auth: json.keys['auth'],
+          },
+        });
+      } catch {
+        /* push unsupported or blocked — the in-tab scheduler still runs */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, settings.notificationsEnabled]);
+
 
   return null;
 }
