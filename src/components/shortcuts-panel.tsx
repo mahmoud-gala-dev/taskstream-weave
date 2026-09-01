@@ -104,7 +104,90 @@ export function ShortcutsPanel() {
           ))}
         </ul>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 max-h-[45vh] space-y-4 overflow-y-auto rounded-md border border-border bg-background/60 p-3">
+          <h3 className="text-sm font-semibold">{t("shortcuts.settingsTitle")}</h3>
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">{t("shortcuts.sessionSection")}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <NumberField
+                id="sp-focus"
+                label={t("shortcuts.focusMinutes")}
+                value={settings.focusMinutes}
+                min={5}
+                max={120}
+                onChange={(focusMinutes) => update({ focusMinutes })}
+              />
+              <NumberField
+                id="sp-break"
+                label={t("shortcuts.breakMinutes")}
+                value={settings.breakMinutes}
+                min={1}
+                max={60}
+                onChange={(breakMinutes) => update({ breakMinutes })}
+              />
+              <NumberField
+                id="sp-long-break"
+                label={t("shortcuts.longBreakMinutes")}
+                value={settings.longBreakMinutes}
+                min={5}
+                max={90}
+                onChange={(longBreakMinutes) => update({ longBreakMinutes })}
+              />
+              <NumberField
+                id="sp-rounds"
+                label={t("shortcuts.roundsBeforeLongBreak")}
+                value={settings.roundsBeforeLongBreak}
+                min={1}
+                max={10}
+                onChange={(roundsBeforeLongBreak) => update({ roundsBeforeLongBreak })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">{t("shortcuts.notifySection")}</p>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={settings.notificationsEnabled}
+                onChange={(e) => update({ notificationsEnabled: e.target.checked })}
+              />
+              {t("shortcuts.notificationsEnabled")}
+            </label>
+            <NumberField
+              id="sp-notify-before"
+              label={t("shortcuts.notifyBeforeEnd")}
+              value={settings.notifyBeforeEndSeconds}
+              min={0}
+              max={600}
+              onChange={(notifyBeforeEndSeconds) => update({ notifyBeforeEndSeconds })}
+            />
+            <p className="text-xs leading-relaxed text-muted-foreground">{t("shortcuts.pushHint")}</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (typeof Notification === "undefined") {
+                  toast.error(t("settings.notificationsUnsupported"));
+                  return;
+                }
+                void Notification.requestPermission().then((permission) =>
+                  permission === "granted"
+                    ? toast.success(t("settings.notificationsEnabled"))
+                    : toast.info(t("settings.notificationsBlocked")),
+                );
+              }}
+            >
+              {t("shortcuts.allowNotifications")}
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <Link to="/settings" className="text-xs underline underline-offset-4" onClick={() => setOpen(false)}>
+            {t("shortcuts.moreSettings")}
+          </Link>
           <Button size="sm" variant="outline" onClick={() => setOpen(false)}>
             {t("common.close")}
           </Button>
@@ -113,3 +196,40 @@ export function ShortcutsPanel() {
     </div>
   );
 }
+
+function NumberField({
+  id,
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </label>
+      <input
+        id={id}
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => {
+          const next = globalThis.Number(e.target.value);
+          if (!globalThis.isNaN(next)) onChange(Math.min(max, Math.max(min, next)));
+        }}
+        className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+      />
+    </div>
+  );
+}
+
