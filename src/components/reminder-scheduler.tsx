@@ -21,6 +21,8 @@ function urlBase64ToUint8Array(value: string): Uint8Array {
 export function ReminderScheduler() {
   const { items, sessions } = useWorkspace();
   const { settings } = useSettings();
+  const { user } = useAuth();
+
   const reminders = useMemo<Reminder[]>(() => {
     if (!settings.notificationsEnabled) return [];
     const now = Date.now();
