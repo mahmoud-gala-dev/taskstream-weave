@@ -60,5 +60,19 @@ export const shortcutsMessages = {
     "shortcuts.panel": "فتح هذه اللوحة",
     "shortcuts.escape": "إغلاق النوافذ",
     "shortcuts.saved": "تم تحديث الاختصار",
+    "shortcuts.settingsTitle": "إعدادات تفصيلية",
+    "shortcuts.sessionSection": "إعدادات الجلسة",
+    "shortcuts.notifySection": "تنبيهات الإشعارات",
+    "shortcuts.focusMinutes": "طول جولة التركيز (دقيقة)",
+    "shortcuts.breakMinutes": "استراحة قصيرة (دقيقة)",
+    "shortcuts.longBreakMinutes": "استراحة طويلة (دقيقة)",
+    "shortcuts.roundsBeforeLongBreak": "عدد الجولات قبل الاستراحة الطويلة",
+    "shortcuts.notifyBeforeEnd": "تنبيه قبل نهاية الجولة (ثانية)",
+    "shortcuts.notificationsEnabled": "تفعيل التذكيرات والتنبيهات",
+    "shortcuts.pushHint":
+      "اسمح بالإشعارات لتصلك تذكيرات Push حقيقية بالجولات المتأخرة ومواعيد الاستحقاق حتى لو كان التطبيق مغلقًا.",
+    "shortcuts.allowNotifications": "السماح بالإشعارات",
+    "shortcuts.moreSettings": "فتح كل الإعدادات",
+
   },
 } as const;
