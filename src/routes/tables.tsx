@@ -1535,6 +1535,11 @@ function Cell({
             onSetProgress={(progress) => onSetProgress(item.id, progress)}
             onSetStyle={(patch) => onSetItemStyle(item.id, patch)}
             onFocus={() => onFocusItem(item.id)}
+            onArchive={() =>
+              void updateRecord<WorkItem>(COL.items, item.id, {
+                archivedAt: item.archivedAt ? null : Date.now(),
+              })
+            }
             onCopyToTable={(tid) => onCopyToTable(p, tid)}
             otherTables={otherTables}
           />
@@ -1657,6 +1662,7 @@ function ItemCard({
   onSetProgress,
   onSetStyle,
   onFocus,
+  onArchive,
   onCopyToTable,
   otherTables,
 }: {
@@ -1670,6 +1676,7 @@ function ItemCard({
   onSetProgress: (progress: number) => void;
   onSetStyle: (patch: StylePatch) => void;
   onFocus: () => void;
+  onArchive: () => void;
   onCopyToTable: (tableId: string) => void;
   otherTables: { id: string; name: string }[];
 }) {
@@ -1695,6 +1702,7 @@ function ItemCard({
       }}
       className={cn(
         "rounded-md border bg-card p-2 shadow-sm transition-shadow",
+        item.archivedAt && "opacity-60 saturate-50",
         isTask
           ? "border-border border-s-4 hover:shadow-md"
           : "border-primary/35 border-s-4 border-s-primary bg-accent/35 shadow-none",
@@ -1745,6 +1753,17 @@ function ItemCard({
               </DropdownMenuSub>
             ) : null}
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onArchive}>
+              {item.archivedAt ? (
+                <>
+                  <ArchiveRestore className="size-4" /> {t("tables.restoreItem")}
+                </>
+              ) : (
+                <>
+                  <Archive className="size-4" /> {t("tables.archiveItem")}
+                </>
+              )}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onRemove}>{t("tables.removeFromTable")}</DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive"
