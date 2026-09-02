@@ -238,6 +238,89 @@ function TablesPage() {
     [cells],
   );
 
+  /** Completed Pomodoro rounds per item, used by the per-cell counters. */
+  const roundsByItem = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) map.set(item.id, completedRoundsForItem(sessions, item.id));
+    return map;
+  }, [items, sessions]);
+
+  /** Tracked seconds per item, used by the per-column summary row. */
+  const secondsByItem = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const session of sessions)
+      map.set(session.itemId, (map.get(session.itemId) ?? 0) + elapsedSeconds(session));
+    return map;
+  }, [sessions]);
+
+  const filtersActive =
+    filters.status !== "all" ||
+    filters.priority !== "all" ||
+    filters.due !== "all" ||
+    filters.topic !== "all";
+
+  /** Placements of the open table after archive state and quick filters. */
+  const visiblePlacements = useMemo(() => {
+    const now = Date.now();
+    return placements.filter((p) => {
+      if (p.tableId !== currentTableId) return false;
+      const item = itemById.get(p.itemId);
+      if (!item) return false;
+      if (!showArchived && item.archivedAt) return false;
+      if (filters.status !== "all" && item.status !== filters.status) return false;
+      if (filters.priority !== "all" && item.priority !== filters.priority) return false;
+      if (filters.topic !== "all" && (item.parentTopicId ?? "") !== filters.topic) return false;
+      if (filters.due !== "all") {
+        const tone = dueTone(item.dueDate, now);
+        if (filters.due === "none" && tone !== "none") return false;
+        if (filters.due === "overdue" && tone !== "overdue") return false;
+        if (filters.due === "today" && tone !== "today") return false;
+        if (filters.due === "week" && tone !== "today" && tone !== "soon") return false;
+      }
+      return true;
+    });
+  }, [placements, currentTableId, itemById, showArchived, filters]);
+
+  /** Columns kept on screen: not hidden manually, and not empty when collapsing. */
+  const visibleColumns = useMemo(
+    () =>
+      tableColumns.filter(
+        (c) =>
+          !hiddenColumns.includes(c.id) &&
+          (!hideEmpty || visiblePlacements.some((p) => p.columnId === c.id)),
+      ),
+    [tableColumns, hiddenColumns, hideEmpty, visiblePlacements],
+  );
+  const visibleRows = useMemo(
+    () =>
+      tableRows.filter((r) => !hideEmpty || visiblePlacements.some((p) => p.rowId === r.id)),
+    [tableRows, hideEmpty, visiblePlacements],
+  );
+
+  /** Completion and tracked time per visible column. */
+  const columnSummary = useMemo(() => {
+    const map = new Map<string, { tasks: number; percent: number; seconds: number }>();
+    for (const column of visibleColumns) {
+      const ids = new Set(
+        visiblePlacements.filter((p) => p.columnId === column.id).map((p) => p.itemId),
+      );
+      const tasks = [...ids].map((id) => itemById.get(id)).filter((i): i is WorkItem => !!i);
+      const onlyTasks = tasks.filter((i) => i.type === "task");
+      const percent = onlyTasks.length
+        ? Math.round(onlyTasks.reduce((sum, i) => sum + (i.progress ?? 0), 0) / onlyTasks.length)
+        : 0;
+      const seconds = [...ids].reduce((sum, id) => sum + (secondsByItem.get(id) ?? 0), 0);
+      map.set(column.id, { tasks: onlyTasks.length, percent, seconds });
+    }
+    return map;
+  }, [visibleColumns, visiblePlacements, itemById, secondsByItem]);
+
+  /** Topics available as a quick-filter dimension. */
+  const topicOptions = useMemo(
+    () => items.filter((i) => i.type === "topic").sort((a, b) => a.title.localeCompare(b.title)),
+    [items],
+  );
+
   /** Cell metadata is created lazily — the first color or icon creates the document. */
   async function setCellStyle(
     rowId: string,
