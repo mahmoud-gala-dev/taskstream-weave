@@ -1,3 +1,4 @@
+import type { ChangeEvent, KeyboardEvent } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -66,7 +67,7 @@ export function InlineName({
       rows={multiline ? 1 : undefined}
       value={draft}
       aria-label={ariaLabel}
-      onChange={(event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      onChange={(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const next = event.target.value;
         dirty.current = true;
         setDraft(next);
@@ -74,7 +75,7 @@ export function InlineName({
         timer.current = window.setTimeout(() => commit(next), delay);
       }}
       onBlur={() => commit(draft)}
-      onKeyDown={(event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      onKeyDown={(event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (event.key === "Enter") {
           event.preventDefault();
           commit(draft);
