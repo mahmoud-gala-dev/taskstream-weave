@@ -13,16 +13,28 @@ export function InlineName({
   className,
   ariaLabel,
   delay = 500,
+  multiline = false,
 }: {
   value: string;
   onCommit: (next: string) => void;
   className?: string;
   ariaLabel: string;
   delay?: number;
+  /** Wrap long names over several lines instead of clipping them. */
+  multiline?: boolean;
 }) {
   const [draft, setDraft] = useState(value);
   const dirty = useRef(false);
   const timer = useRef<number | null>(null);
+  const area = useRef<HTMLTextAreaElement | null>(null);
+
+  // Keep the textarea exactly as tall as its wrapped content.
+  useLayoutEffect(() => {
+    const el = area.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft, multiline]);
 
   useEffect(() => {
     if (!dirty.current) setDraft(value);
