@@ -126,7 +126,7 @@ function useItemChildren(itemId: string) {
 function ItemWorkspace() {
   const t = useT();
   const { itemId } = Route.useParams();
-  const { userId, items, sessions } = useWorkspace();
+  const { userId, items, sessions, placements, tables, rows, columns } = useWorkspace();
   const item = items.find((i) => i.id === itemId) ?? null;
   const { subtasks, notes, links, attachments } = useItemChildren(itemId);
 
@@ -138,6 +138,9 @@ function ItemWorkspace() {
   const [highlight, setHighlight] = useState<{ start: number; end: number } | null>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const [linkDraft, setLinkDraft] = useState("");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("overview");
+  const titleRef = useRef<HTMLInputElement>(null);
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
   const subtaskSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
@@ -159,6 +162,57 @@ function ItemWorkspace() {
     .sort((a, b) => b.startedAt - a.startedAt);
   const totalSeconds = itemSessions.reduce((acc, s) => acc + elapsedSeconds(s, now), 0);
   const open = itemSessions.find((s) => s.status !== "stopped") ?? null;
+  const doneSubtasks = subtasks.filter((s) => s.done).length;
+  const itemPlacements = useMemo(
+    () => placements.filter((p) => p.itemId === itemId),
+    [placements, itemId],
+  );
+  const doneRounds = completedRoundsForItem(sessions, itemId);
+
+  const toggleTimer = useCallback(() => {
+    if (!item) return;
+    if (!open) {
+      if (userId) void startSession(userId, { id: item.id, type: item.type, title: item.title });
+      return;
+    }
+    if (open.status === "running") void pauseSession(open);
+    else void resumeSession(open);
+  }, [item, open, userId]);
+
+  // Auto progress: mirror the share of completed subtasks unless overridden manually.
+  useEffect(() => {
+    if (!item?.autoProgress || !subtasks.length) return;
+    const next = Math.round((doneSubtasks / subtasks.length) * 100);
+    if (next !== item.progress) {
+      void updateRecord<WorkItem>(COL.items, item.id, { progress: next });
+    }
+  }, [item?.autoProgress, item?.progress, item?.id, doneSubtasks, subtasks.length]);
+
+  // In-page keyboard shortcuts.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (target && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName))) return;
+      const key = event.key.toLowerCase();
+      if (key === "s") {
+        event.preventDefault();
+        toggleTimer();
+      } else if (key === "n") {
+        event.preventDefault();
+        setTab("subtasks");
+        setTimeout(() => subtaskInputRef.current?.focus(), 50);
+      } else if (key === "e") {
+        event.preventDefault();
+        titleRef.current?.focus();
+      } else if (/^[1-7]$/.test(event.key)) {
+        event.preventDefault();
+        setTab(TABS[Number(event.key) - 1]!);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggleTimer]);
 
   if (!item) {
     return (
@@ -182,19 +236,24 @@ function ItemWorkspace() {
         <ArrowLeft className="mr-1 inline size-4" /> {t("item.backToTables")}
       </Link>
 
+      <ItemStickyBar item={item} userId={userId} open={open} totalSeconds={totalSeconds} now={now} />
+
       <header className="mt-4">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{item.type}</p>
         <Input
+          ref={titleRef}
           value={item.title}
           onChange={(e) => patch({ title: e.target.value })}
           aria-label={t("item.titleLabel")}
           className="mt-1 h-auto border-transparent bg-transparent px-0 text-2xl font-semibold shadow-none focus-visible:border-input focus-visible:px-3"
         />
+        <p className="mt-1 text-xs text-muted-foreground">{t("item.shortcuts.hint")}</p>
       </header>
 
-      <Tabs defaultValue="overview" className="mt-6">
+      <Tabs value={tab} onValueChange={(value) => setTab(value as (typeof TABS)[number])} className="mt-6">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="overview">{t("item.tab.overview")}</TabsTrigger>
+          <TabsTrigger value="timeline">{t("item.tab.timeline")}</TabsTrigger>
           <TabsTrigger value="sessions">{t("item.tab.sessions")}</TabsTrigger>
           <TabsTrigger value="subtasks">{t("item.tab.subtasks", { done: subtasks.filter((s) => s.done).length, total: subtasks.length })}</TabsTrigger>
           <TabsTrigger value="docs">{t("item.tab.docs")}</TabsTrigger>
