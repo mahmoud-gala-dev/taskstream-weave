@@ -228,6 +228,14 @@ function SettingsPage() {
           max={600}
           onChange={(notifyBeforeEndSeconds) => update({ notifyBeforeEndSeconds })}
         />
+        <Number
+          id="autoArchiveDays"
+          label={t("settings.autoArchiveDays")}
+          value={settings.autoArchiveDays}
+          min={0}
+          max={365}
+          onChange={(autoArchiveDays) => update({ autoArchiveDays })}
+        />
         <label className="flex items-center gap-2 self-end text-sm">
           <input
             type="checkbox"

@@ -14,6 +14,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
+  Archive,
+  ArchiveRestore,
   Clock3,
   Copy,
   ChevronDown,
@@ -85,6 +87,7 @@ import { bySortOrder, orderAtEnd, orderForIndex } from "@/lib/order";
 import { ICONS, PALETTE, tint } from "@/lib/palette";
 import { startSession } from "@/lib/sessions";
 import { confirmToast } from "@/lib/confirm";
+import { useSettings } from "@/lib/settings-store";
 import { readSnapshot } from "@/lib/table-snapshot";
 import type { ItemStatus, ItemType, Note, Placement, TableCell, WorkItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -133,6 +136,9 @@ function TablesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const [sectionOpenOverrides, setSectionOpenOverrides] = useState<Record<string, boolean>>({});
+  const [showArchived, setShowArchived] = useState(false);
+  const { settings } = useSettings();
+  const swept = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -143,6 +149,33 @@ function TablesPage() {
   useEffect(() => {
     window.localStorage.setItem("work-os:sections-open", String(sidebarOpen));
   }, [sidebarOpen]);
+
+
+  /**
+   * Auto-archive: completed items untouched for longer than the configured
+   * window get an `archivedAt` stamp so tables stay light. Runs once per visit
+   * and never deletes anything — archived items are one toggle away.
+   */
+  useEffect(() => {
+    const days = settings?.autoArchiveDays ?? 0;
+    if (!userId || swept.current || days <= 0 || !items.length) return;
+    swept.current = true;
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const stale = items.filter(
+      (i) =>
+        i.status === "done" &&
+        !i.archivedAt &&
+        (i.completedAt ?? i.updatedAt ?? i.createdAt ?? Date.now()) < cutoff,
+    );
+    if (!stale.length) return;
+    void (async () => {
+      const now = Date.now();
+      for (const item of stale) {
+        await updateRecord<WorkItem>(COL.items, item.id, { archivedAt: now });
+      }
+      toast.success(t("tables.autoArchived", { count: stale.length, days }));
+    })();
+  }, [userId, items, settings?.autoArchiveDays, t]);
 
 
   const sensors = useSensors(
@@ -165,6 +198,13 @@ function TablesPage() {
     [columns, currentTableId],
   );
   const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  /** How many placements in this table point at archived items. */
+  const archivedCount = useMemo(
+    () =>
+      placements.filter((p) => p.tableId === currentTableId && itemById.get(p.itemId)?.archivedAt)
+        .length,
+    [placements, itemById, currentTableId],
+  );
   /** Tasks and topics currently placed anywhere in the open table. */
   const tableItems = useMemo(() => {
     const ids = new Set(
@@ -351,7 +391,13 @@ function TablesPage() {
 
   function cellPlacements(rowId: string, columnId: string) {
     return placements
-      .filter((p) => p.tableId === currentTableId && p.rowId === rowId && p.columnId === columnId)
+      .filter(
+        (p) =>
+          p.tableId === currentTableId &&
+          p.rowId === rowId &&
+          p.columnId === columnId &&
+          (showArchived || !itemById.get(p.itemId)?.archivedAt),
+      )
       .sort(bySortOrder);
   }
 
@@ -600,6 +646,17 @@ function TablesPage() {
                 </>
               )}
             </Button>
+            {archivedCount || showArchived ? (
+              <Button
+                variant={showArchived ? "secondary" : "outline"}
+                size="sm"
+                aria-pressed={showArchived}
+                onClick={() => setShowArchived((v) => !v)}
+              >
+                <Archive className="size-4" />
+                {showArchived ? t("tables.hideArchived") : t("tables.archivedCount", { count: archivedCount })}
+              </Button>
+            ) : null}
           </div>
           <TableFocusTray userId={userId} items={items} />
           {!table ? (
@@ -1478,6 +1535,11 @@ function Cell({
             onSetProgress={(progress) => onSetProgress(item.id, progress)}
             onSetStyle={(patch) => onSetItemStyle(item.id, patch)}
             onFocus={() => onFocusItem(item.id)}
+            onArchive={() =>
+              void updateRecord<WorkItem>(COL.items, item.id, {
+                archivedAt: item.archivedAt ? null : Date.now(),
+              })
+            }
             onCopyToTable={(tid) => onCopyToTable(p, tid)}
             otherTables={otherTables}
           />
@@ -1600,6 +1662,7 @@ function ItemCard({
   onSetProgress,
   onSetStyle,
   onFocus,
+  onArchive,
   onCopyToTable,
   otherTables,
 }: {
@@ -1613,6 +1676,7 @@ function ItemCard({
   onSetProgress: (progress: number) => void;
   onSetStyle: (patch: StylePatch) => void;
   onFocus: () => void;
+  onArchive: () => void;
   onCopyToTable: (tableId: string) => void;
   otherTables: { id: string; name: string }[];
 }) {
@@ -1638,6 +1702,7 @@ function ItemCard({
       }}
       className={cn(
         "rounded-md border bg-card p-2 shadow-sm transition-shadow",
+        item.archivedAt && "opacity-60 saturate-50",
         isTask
           ? "border-border border-s-4 hover:shadow-md"
           : "border-primary/35 border-s-4 border-s-primary bg-accent/35 shadow-none",
@@ -1688,6 +1753,17 @@ function ItemCard({
               </DropdownMenuSub>
             ) : null}
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onArchive}>
+              {item.archivedAt ? (
+                <>
+                  <ArchiveRestore className="size-4" /> {t("tables.restoreItem")}
+                </>
+              ) : (
+                <>
+                  <Archive className="size-4" /> {t("tables.archiveItem")}
+                </>
+              )}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onRemove}>{t("tables.removeFromTable")}</DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive"
