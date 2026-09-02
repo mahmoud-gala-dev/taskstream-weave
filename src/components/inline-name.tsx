@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent, KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,16 +14,28 @@ export function InlineName({
   className,
   ariaLabel,
   delay = 500,
+  multiline = false,
 }: {
   value: string;
   onCommit: (next: string) => void;
   className?: string;
   ariaLabel: string;
   delay?: number;
+  /** Wrap long names over several lines instead of clipping them. */
+  multiline?: boolean;
 }) {
   const [draft, setDraft] = useState(value);
   const dirty = useRef(false);
   const timer = useRef<number | null>(null);
+  const area = useRef<HTMLTextAreaElement | null>(null);
+
+  // Keep the textarea exactly as tall as its wrapped content.
+  useLayoutEffect(() => {
+    const el = area.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft, multiline]);
 
   useEffect(() => {
     if (!dirty.current) setDraft(value);
@@ -46,11 +59,15 @@ export function InlineName({
     onCommit(trimmed);
   }
 
+  const Tag = multiline ? "textarea" : "input";
+
   return (
-    <input
+    <Tag
+      ref={multiline ? (area as never) : undefined}
+      rows={multiline ? 1 : undefined}
       value={draft}
       aria-label={ariaLabel}
-      onChange={(event) => {
+      onChange={(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const next = event.target.value;
         dirty.current = true;
         setDraft(next);
@@ -58,7 +75,7 @@ export function InlineName({
         timer.current = window.setTimeout(() => commit(next), delay);
       }}
       onBlur={() => commit(draft)}
-      onKeyDown={(event) => {
+      onKeyDown={(event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (event.key === "Enter") {
           event.preventDefault();
           commit(draft);
@@ -76,6 +93,7 @@ export function InlineName({
       onClick={(event) => event.stopPropagation()}
       className={cn(
         "min-w-0 flex-1 cursor-text rounded-sm bg-transparent px-1 outline-none transition-colors hover:bg-muted/60 focus:bg-background focus:ring-1 focus:ring-ring",
+        multiline && "resize-none overflow-hidden break-words whitespace-pre-wrap leading-snug",
         className,
       )}
     />
