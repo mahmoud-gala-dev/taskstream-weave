@@ -123,6 +123,14 @@ export const Route = createFileRoute("/tables")({
   ),
 });
 
+/** Quick, non-destructive filters applied on top of the open table. */
+type QuickFilters = {
+  status: ItemStatus | "all";
+  priority: Priority | "all";
+  due: "all" | "overdue" | "today" | "week" | "none";
+  topic: string;
+};
+
 type DragData =
   | { kind: "section"; id: string }
   | { kind: "table"; id: string; sectionId: string }
@@ -403,14 +411,8 @@ function TablesPage() {
   }
 
   function cellPlacements(rowId: string, columnId: string) {
-    return placements
-      .filter(
-        (p) =>
-          p.tableId === currentTableId &&
-          p.rowId === rowId &&
-          p.columnId === columnId &&
-          (showArchived || !itemById.get(p.itemId)?.archivedAt),
-      )
+    return visiblePlacements
+      .filter((p) => p.rowId === rowId && p.columnId === columnId)
       .sort(bySortOrder);
   }
 
