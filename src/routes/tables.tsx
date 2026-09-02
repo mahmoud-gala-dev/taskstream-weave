@@ -611,14 +611,16 @@ function TablesPage() {
           ) : (
             <>
               <header className="mb-6 flex flex-wrap items-center gap-3">
-                <Input
+                <InlineName
+                  key={table.id}
                   value={table.name}
-                  onChange={(e) =>
-                    void updateRecord(COL.tables, table.id, { name: e.target.value } as never)
+                  onCommit={(name) =>
+                    void updateRecord(COL.tables, table.id, { name } as never)
                   }
-                  className="h-9 w-64 border-transparent bg-transparent px-0 text-xl font-semibold shadow-none focus-visible:border-input focus-visible:px-3"
-                  aria-label={t("tables.tableNameLabel")}
+                  className="h-9 w-64 flex-none px-2 text-xl font-semibold"
+                  ariaLabel={t("tables.tableNameLabel")}
                 />
+
                 <p className="ml-auto text-xs text-muted-foreground">
                   {t("tables.rightClickHint")}
                 </p>
