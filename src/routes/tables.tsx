@@ -133,6 +133,9 @@ function TablesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const [sectionOpenOverrides, setSectionOpenOverrides] = useState<Record<string, boolean>>({});
+  const [showArchived, setShowArchived] = useState(false);
+  const { settings } = useSettings();
+  const swept = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -144,6 +147,40 @@ function TablesPage() {
     window.localStorage.setItem("work-os:sections-open", String(sidebarOpen));
   }, [sidebarOpen]);
 
+
+  /**
+   * Auto-archive: completed items untouched for longer than the configured
+   * window get an `archivedAt` stamp so tables stay light. Runs once per visit
+   * and never deletes anything — archived items are one toggle away.
+   */
+  useEffect(() => {
+    const days = settings?.autoArchiveDays ?? 0;
+    if (!userId || swept.current || days <= 0 || !items.length) return;
+    swept.current = true;
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const stale = items.filter(
+      (i) =>
+        i.status === "done" &&
+        !i.archivedAt &&
+        (i.completedAt ?? i.updatedAt ?? i.createdAt ?? Date.now()) < cutoff,
+    );
+    if (!stale.length) return;
+    void (async () => {
+      const now = Date.now();
+      for (const item of stale) {
+        await updateRecord<WorkItem>(COL.items, item.id, { archivedAt: now });
+      }
+      toast.success(t("tables.autoArchived", { count: stale.length, days }));
+    })();
+  }, [userId, items, settings?.autoArchiveDays, t]);
+
+  const archivedCount = useMemo(
+    () =>
+      placements.filter(
+        (p) => p.tableId === currentTableIdRef.current && itemByIdRef.current.get(p.itemId)?.archivedAt,
+      ).length,
+    [placements],
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -351,7 +388,13 @@ function TablesPage() {
 
   function cellPlacements(rowId: string, columnId: string) {
     return placements
-      .filter((p) => p.tableId === currentTableId && p.rowId === rowId && p.columnId === columnId)
+      .filter(
+        (p) =>
+          p.tableId === currentTableId &&
+          p.rowId === rowId &&
+          p.columnId === columnId &&
+          (showArchived || !itemById.get(p.itemId)?.archivedAt),
+      )
       .sort(bySortOrder);
   }
 
