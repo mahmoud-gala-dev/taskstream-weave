@@ -755,6 +755,121 @@ function TablesPage() {
                 {showArchived ? t("tables.hideArchived") : t("tables.archivedCount", { count: archivedCount })}
               </Button>
             ) : null}
+            <Button
+              variant={hideEmpty ? "secondary" : "outline"}
+              size="sm"
+              aria-pressed={hideEmpty}
+              onClick={() => setHideEmpty((v) => !v)}
+            >
+              <EyeOff className="size-4" />
+              {hideEmpty ? t("grid.showEmpty") : t("grid.hideEmpty")}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant={hiddenColumns.length ? "secondary" : "outline"} size="sm">
+                  <Columns3 className="size-4" />
+                  {hiddenColumns.length
+                    ? t("grid.hiddenColumns", { count: hiddenColumns.length })
+                    : t("grid.columns")}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {tableColumns.map((col) => (
+                  <DropdownMenuItem
+                    key={col.id}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setHiddenColumns((current) =>
+                        current.includes(col.id)
+                          ? current.filter((id) => id !== col.id)
+                          : [...current, col.id],
+                      );
+                    }}
+                  >
+                    <span className="w-4">{hiddenColumns.includes(col.id) ? "" : "✓"}</span>
+                    <span className="truncate">{col.name}</span>
+                  </DropdownMenuItem>
+                ))}
+                {hiddenColumns.length ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setHiddenColumns([])}>
+                      {t("grid.showAllColumns")}
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant={dueColors ? "secondary" : "outline"}
+              size="sm"
+              aria-pressed={dueColors}
+              onClick={() => setDueColors((v) => !v)}
+            >
+              {t("grid.dueColors")}
+            </Button>
+          </div>
+
+          {/* Quick filter bar: narrows the open table without leaving the page. */}
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/40 p-2">
+            <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <Filter className="size-3.5" /> {t("grid.filters")}
+            </span>
+            <FilterSelect
+              label={t("grid.filterStatus")}
+              value={filters.status}
+              onChange={(status) => setFilters((f) => ({ ...f, status: status as QuickFilters["status"] }))}
+              options={[
+                { value: "all", label: t("grid.all") },
+                ...STATUSES.map((st) => ({ value: st.value, label: t(st.labelKey) })),
+              ]}
+            />
+            <FilterSelect
+              label={t("grid.filterPriority")}
+              value={filters.priority}
+              onChange={(priority) =>
+                setFilters((f) => ({ ...f, priority: priority as QuickFilters["priority"] }))
+              }
+              options={[
+                { value: "all", label: t("grid.all") },
+                { value: "urgent", label: "urgent" },
+                { value: "high", label: "high" },
+                { value: "normal", label: "normal" },
+                { value: "low", label: "low" },
+              ]}
+            />
+            <FilterSelect
+              label={t("grid.filterDue")}
+              value={filters.due}
+              onChange={(due) => setFilters((f) => ({ ...f, due: due as QuickFilters["due"] }))}
+              options={[
+                { value: "all", label: t("grid.all") },
+                { value: "overdue", label: t("grid.dueOverdue") },
+                { value: "today", label: t("grid.dueToday") },
+                { value: "week", label: t("grid.dueWeek") },
+                { value: "none", label: t("grid.dueNone") },
+              ]}
+            />
+            <FilterSelect
+              label={t("grid.filterTopic")}
+              value={filters.topic}
+              onChange={(topic) => setFilters((f) => ({ ...f, topic }))}
+              options={[
+                { value: "all", label: t("grid.all") },
+                ...topicOptions.map((topic) => ({ value: topic.id, label: topic.title })),
+              ]}
+            />
+            {filtersActive ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setFilters({ status: "all", priority: "all", due: "all", topic: "all" })
+                }
+              >
+                {t("grid.clearFilters")}
+              </Button>
+            ) : null}
           </div>
           <TableFocusTray userId={userId} items={items} />
           {!table ? (
