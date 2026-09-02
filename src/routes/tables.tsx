@@ -1575,7 +1575,7 @@ function LineHeader({
         borderColor: color ?? undefined,
       }}
       className={cn(
-        "flex items-center gap-1 rounded-md border border-border bg-card/70 px-2 py-2 shadow-sm",
+        "flex min-w-0 items-start gap-1 rounded-md border border-border bg-card/70 px-2 py-2 shadow-sm",
         kind === "column" && "font-semibold",
         isDragging && "opacity-50",
         isOver && "ring-2 ring-primary",
@@ -1583,26 +1583,79 @@ function LineHeader({
     >
       <button
         type="button"
-        className="cursor-grab text-muted-foreground"
+        className="mt-0.5 shrink-0 cursor-grab text-muted-foreground"
         aria-label={t("tables.dragLine", { name })}
         {...attributes}
         {...listeners}
       >
         <GripVertical className="size-3.5" />
       </button>
-      {icon ? <span aria-hidden>{icon}</span> : null}
+      {icon ? (
+        <span className="mt-0.5 shrink-0" aria-hidden>
+          {icon}
+        </span>
+      ) : null}
       <InlineName
         key={id}
         value={name}
         onCommit={onRename}
+        multiline
         className="text-sm font-medium"
         ariaLabel={t("tables.lineNameLabel", { kind: kindLabel })}
       />
 
-      {onStyle ? <StylePicker color={color} icon={icon} onChange={onStyle} /> : null}
-      <Button variant="ghost" size="icon" aria-label={t("tables.deleteLineAria", { kind: kindLabel })} onClick={confirmDelete}>
-        <Trash2 className="size-3.5" />
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0"
+            aria-label={t("tables.actionsFor", { name })}
+          >
+            <MoreHorizontal className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="right" className="w-52">
+          <DropdownMenuItem
+            onSelect={() => {
+              const next = window.prompt(t("tables.lineNamePrompt", { kind: kindLabel }), name);
+              if (next) onRename(next);
+            }}
+          >
+            <Edit3 className="size-4" />
+            {t("tables.rename")}
+          </DropdownMenuItem>
+          {onStyle ? (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Tag className="size-4" />
+                {t("tables.color")}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {PALETTE.map((c) => (
+                  <DropdownMenuItem key={c.value} onSelect={() => onStyle({ color: c.value })}>
+                    <span
+                      className="size-3 rounded-full"
+                      style={{ backgroundColor: c.value }}
+                      aria-hidden
+                    />
+                    {c.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onStyle({ color: null, icon: null })}>
+                  {t("tables.clearStyle")}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          ) : null}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-destructive" onSelect={confirmDelete}>
+            <Trash2 className="size-4" />
+            {t("tables.deleteLineMenu", { kind: kindLabel })}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 
