@@ -38,6 +38,8 @@ export type Settings = Base & {
   captureShortcut: string;
   /** Serialized Pomodoro timer state, so a running timer follows the account. */
   pomodoroState: string;
+  /** Auto-archive completed items older than this many days (0 = off). */
+  autoArchiveDays: number;
 };
 
 const DEFAULTS: Omit<Settings, "id" | "userId"> = {
@@ -61,6 +63,7 @@ const DEFAULTS: Omit<Settings, "id" | "userId"> = {
   focusDoneMessage: "Focus round complete on {task} — {minutes} min tracked.",
   captureShortcut: "n",
   pomodoroState: "",
+  autoArchiveDays: 14,
 };
 
 /**
