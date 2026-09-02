@@ -58,11 +58,15 @@ export function InlineName({
     onCommit(trimmed);
   }
 
+  const Tag = multiline ? "textarea" : "input";
+
   return (
-    <input
+    <Tag
+      ref={multiline ? (area as never) : undefined}
+      rows={multiline ? 1 : undefined}
       value={draft}
       aria-label={ariaLabel}
-      onChange={(event) => {
+      onChange={(event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const next = event.target.value;
         dirty.current = true;
         setDraft(next);
