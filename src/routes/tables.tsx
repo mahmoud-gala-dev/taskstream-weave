@@ -1262,12 +1262,14 @@ function LineHeader({
         <GripVertical className="size-3.5" />
       </button>
       {icon ? <span aria-hidden>{icon}</span> : null}
-      <input
+      <InlineName
+        key={id}
         value={name}
-        onChange={(e) => onRename(e.target.value)}
-        className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none"
-        aria-label={t("tables.lineNameLabel", { kind: kindLabel })}
+        onCommit={onRename}
+        className="text-sm font-medium"
+        ariaLabel={t("tables.lineNameLabel", { kind: kindLabel })}
       />
+
       {onStyle ? <StylePicker color={color} icon={icon} onChange={onStyle} /> : null}
       <Button variant="ghost" size="icon" aria-label={t("tables.deleteLineAria", { kind: kindLabel })} onClick={confirmDelete}>
         <Trash2 className="size-3.5" />
