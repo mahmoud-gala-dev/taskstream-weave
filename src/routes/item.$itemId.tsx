@@ -2,12 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, Check, GripVertical, Highlighter, Pause, Pin, PinOff, Play, Plus, Square, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowUpRight, Check, GripVertical, Highlighter, Pause, Pin, PinOff, Play, Plus, Square, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
+import { ItemAiSummary } from "@/components/item-ai-summary";
 import { ItemDocumentation } from "@/components/item-documentation";
+import { ItemPlacements } from "@/components/item-placements";
+import { ItemRelations } from "@/components/item-relations";
+import { ItemStickyBar } from "@/components/item-sticky-bar";
+import { ItemTimeline } from "@/components/item-timeline";
+import { LinkPreview } from "@/components/link-preview";
 import { RichDocEditor } from "@/components/rich-doc-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -18,6 +24,7 @@ import { useTick } from "@/hooks/useTick";
 import { COL, createRecord, deleteRecord, updateRecord, watchUserCollection } from "@/lib/db";
 import { bySortOrder, orderAtEnd, orderForIndex } from "@/lib/order";
 import {
+  completedRoundsForItem,
   elapsedSeconds,
   formatDuration,
   pauseSession,
@@ -64,6 +71,7 @@ export const Route = createFileRoute("/item/$itemId")({
 
 const STATUSES: ItemStatus[] = ["todo", "in_progress", "blocked", "review", "done"];
 const PRIORITIES: Priority[] = ["low", "normal", "high", "urgent"];
+const TABS = ["overview", "timeline", "sessions", "subtasks", "docs", "files", "links"] as const;
 
 function useItemChildren(itemId: string) {
   const { userId } = useWorkspace();
