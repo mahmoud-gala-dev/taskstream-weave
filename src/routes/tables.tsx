@@ -174,13 +174,6 @@ function TablesPage() {
     })();
   }, [userId, items, settings?.autoArchiveDays, t]);
 
-  const archivedCount = useMemo(
-    () =>
-      placements.filter(
-        (p) => p.tableId === currentTableIdRef.current && itemByIdRef.current.get(p.itemId)?.archivedAt,
-      ).length,
-    [placements],
-  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
