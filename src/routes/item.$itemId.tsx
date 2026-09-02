@@ -306,6 +306,29 @@ function ItemWorkspace() {
           />
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="dueTime">{t("item.due.time")}</Label>
+          <input
+            id="dueTime"
+            type="time"
+            value={item.dueTime ?? ""}
+            onChange={(e) => patch({ dueTime: e.target.value || null })}
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="recurrence">{t("item.due.repeat")}</Label>
+          <select
+            id="recurrence"
+            value={item.recurrence ?? "none"}
+            onChange={(e) => patch({ recurrence: e.target.value as "none" | "daily" | "weekly" })}
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="none">{t("item.repeat.none")}</option>
+            <option value="daily">{t("item.repeat.daily")}</option>
+            <option value="weekly">{t("item.repeat.weekly")}</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="estimatedRounds">{t("plan.estimate")}</Label>
           <input
             id="estimatedRounds"
@@ -325,9 +348,21 @@ function ItemWorkspace() {
             max={100}
             step={5}
             value={item.progress}
+            disabled={!!item.autoProgress}
             onChange={(e) => patch({ progress: Number(e.target.value) })}
             className="w-full"
           />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={!!item.autoProgress}
+              onChange={(e) => patch({ autoProgress: e.target.checked })}
+            />
+            {t("item.autoProgress")}
+          </label>
+          {item.autoProgress ? (
+            <p className="text-xs text-muted-foreground">{t("item.autoProgressHint")}</p>
+          ) : null}
         </div>
       </section>
       <section className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -335,9 +370,50 @@ function ItemWorkspace() {
         <SummaryCard label={t("item.summary.sessions")} value={String(itemSessions.length)} />
         <SummaryCard
           label={t("item.summary.subtasksDone")}
-          value={`${subtasks.filter((s) => s.done).length}/${subtasks.length}`}
+          value={`${doneSubtasks}/${subtasks.length}`}
         />
       </section>
+
+      <section className="mt-6 rounded-lg border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">{t("item.estimate.title")}</h2>
+        {item.estimatedRounds ? (
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("item.estimate.line", {
+                planned: item.estimatedRounds,
+                done: doneRounds,
+                left: formatDuration(Math.max(0, item.estimatedRounds - doneRounds) * 25 * 60),
+              })}
+            </p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300"
+                style={{ width: `${Math.min(100, Math.round((doneRounds / item.estimatedRounds) * 100))}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">{t("item.estimate.noPlan")}</p>
+        )}
+      </section>
+
+      <ItemRelations item={item} items={items} />
+      <ItemPlacements placements={itemPlacements} tables={tables} rows={rows} columns={columns} />
+      <ItemAiSummary item={item} subtasks={subtasks} sessions={itemSessions} now={now} />
+      <div className="pb-10" />
+        </TabsContent>
+
+        <TabsContent value="timeline">
+          <ItemTimeline
+            userId={userId}
+            item={item}
+            sessions={itemSessions}
+            subtasks={subtasks}
+            notes={notes}
+            links={links}
+            attachments={attachments}
+            now={now}
+          />
         </TabsContent>
 
         <TabsContent value="sessions">
@@ -414,7 +490,9 @@ function ItemWorkspace() {
         <DndContext sensors={subtaskSensors} collisionDetection={closestCenter} onDragEnd={reorderSubtask}>
           <SortableContext items={subtasks.map((s) => s.id)} strategy={verticalListSortingStrategy}>
             <ul className="mt-3 space-y-2">
-              {subtasks.map((st) => <SortableSubtask key={st.id} subtask={st} />)}
+              {subtasks.map((st) => (
+                <SortableSubtask key={st.id} subtask={st} parent={item} userId={userId} />
+              ))}
           {!subtasks.length ? (
             <li className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
               {t("item.subtasks.empty")}
@@ -439,6 +517,7 @@ function ItemWorkspace() {
           }}
         >
           <Input
+            ref={subtaskInputRef}
             value={subtaskDraft}
             onChange={(e) => setSubtaskDraft(e.target.value)}
             placeholder={t("item.subtasks.addPlaceholder")}
@@ -540,14 +619,7 @@ function ItemWorkspace() {
         <ul className="mt-2 space-y-1 text-sm">
           {links.map((l) => (
             <li key={l.id} className="flex items-center gap-2">
-              <a
-                href={l.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="min-w-0 flex-1 truncate text-primary hover:underline"
-              >
-                {l.title || l.url}
-              </a>
+              <LinkPreview link={l} />
               <button
                 type="button"
                 className="text-xs text-muted-foreground hover:underline"
@@ -597,8 +669,35 @@ function SummaryCard({ label, value, mono }: { label: string; value: string; mon
   );
 }
 
-function SortableSubtask({ subtask }: { subtask: Subtask }) {
+function SortableSubtask({
+  subtask,
+  parent,
+  userId,
+}: {
+  subtask: Subtask;
+  parent: WorkItem;
+  userId: string | null;
+}) {
   const t = useT();
+
+  async function promote() {
+    if (!userId) return;
+    const id = await createRecord<WorkItem>(COL.items, userId, {
+      type: "task",
+      title: subtask.title,
+      status: subtask.done ? "done" : "todo",
+      priority: parent.priority,
+      progress: subtask.done ? 100 : 0,
+      parentTopicId: parent.type === "topic" ? parent.id : (parent.parentTopicId ?? null),
+      promotedFromSubtaskId: subtask.id,
+      relatedTo: [parent.id],
+    } as never);
+    await updateRecord<WorkItem>(COL.items, parent.id, {
+      relatedTo: Array.from(new Set([...(parent.relatedTo ?? []), id])),
+    });
+    toast.success(t("item.subtasks.promoted"));
+  }
+
   const sortable = useSortable({ id: subtask.id });
   return (
     <li ref={sortable.setNodeRef} style={{ transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition }} className="group">
@@ -608,6 +707,7 @@ function SortableSubtask({ subtask }: { subtask: Subtask }) {
           <span aria-hidden className={"flex size-5 shrink-0 items-center justify-center rounded-full border transition-all " + (subtask.done ? "border-emerald-500 bg-emerald-500 text-white" : "border-muted-foreground/40 text-transparent group-hover:border-primary")}><Check className="size-3.5" /></span>
           <span className={"min-w-0 truncate text-sm " + (subtask.done ? "text-muted-foreground line-through" : "")}>{subtask.title}</span>
         </button>
+        <Button variant="ghost" size="icon" aria-label={t("item.subtasks.promote")} title={t("item.subtasks.promote")} onClick={() => void promote()}><ArrowUpRight className="size-4" /></Button>
         <Button variant="ghost" size="icon" aria-label={t("item.subtasks.deleteAria", { title: subtask.title })} onClick={() => void deleteRecord(COL.subtasks, subtask.id)}><Trash2 className="size-4" /></Button>
       </div>
     </li>
