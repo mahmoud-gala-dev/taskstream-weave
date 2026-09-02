@@ -1133,6 +1133,36 @@ function TablesPage() {
   );
 }
 
+/** Compact labelled <select> used by the quick filter bar. */
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex items-center gap-1 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-7 rounded-md border border-border bg-background px-1.5 text-xs"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function SectionNode({
   section,
   openOverride,
@@ -1682,6 +1712,8 @@ function Cell({
   onStyle,
   placements,
   itemById,
+  roundsByItem,
+  dueColors,
   onOpen,
   onAddItem,
   onRemove,
@@ -1701,6 +1733,8 @@ function Cell({
   onStyle: (patch: CellPatch) => void;
   placements: Placement[];
   itemById: Map<string, WorkItem>;
+  roundsByItem: Map<string, number>;
+  dueColors: boolean;
   onOpen: (itemId: string) => void;
   onAddItem: (type: ItemType, title: string) => void;
   onRemove: (placementId: string) => void;
@@ -1721,6 +1755,20 @@ function Cell({
   const [editingNote, setEditingNote] = useState(false);
   const [adding, setAdding] = useState<ItemType | null>(null);
   const [draft, setDraft] = useState("");
+
+  /** Tasks in this cell plus the Pomodoro rounds still owed on them. */
+  const cellCount = useMemo(() => {
+    let tasks = 0;
+    let rounds = 0;
+    for (const p of placements) {
+      const item = itemById.get(p.itemId);
+      if (!item || item.type !== "task") continue;
+      tasks += 1;
+      const planned = item.estimatedRounds ?? 0;
+      rounds += Math.max(0, planned - (roundsByItem.get(item.id) ?? 0));
+    }
+    return { tasks, rounds };
+  }, [placements, itemById, roundsByItem]);
 
   function submitNew() {
     const title = draft.trim();
@@ -1752,6 +1800,12 @@ function Cell({
         </p>
       ) : null}
 
+      {placements.length ? (
+        <p className="text-[11px] font-medium text-muted-foreground">
+          {t("grid.cellCounter", { tasks: cellCount.tasks, rounds: cellCount.rounds })}
+        </p>
+      ) : null}
+
       <CellNote
         note={cell?.note}
         noteImage={cell?.noteImage}
@@ -1776,6 +1830,7 @@ function Cell({
             onSetProgress={(progress) => onSetProgress(item.id, progress)}
             onSetStyle={(patch) => onSetItemStyle(item.id, patch)}
             onFocus={() => onFocusItem(item.id)}
+            dueColor={dueColors ? dueTone(item.dueDate) : "none"}
             onArchive={() =>
               void updateRecord<WorkItem>(COL.items, item.id, {
                 archivedAt: item.archivedAt ? null : Date.now(),
@@ -1904,6 +1959,7 @@ function ItemCard({
   onSetStyle,
   onFocus,
   onArchive,
+  dueColor,
   onCopyToTable,
   otherTables,
 }: {
@@ -1918,6 +1974,7 @@ function ItemCard({
   onSetStyle: (patch: StylePatch) => void;
   onFocus: () => void;
   onArchive: () => void;
+  dueColor: DueTone;
   onCopyToTable: (tableId: string) => void;
   otherTables: { id: string; name: string }[];
 }) {
@@ -1938,8 +1995,9 @@ function ItemCard({
       ref={setNodeRef}
       style={{
         transform: CSS.Translate.toString(transform),
-        borderColor: item.color ?? undefined,
-        backgroundColor: tint(item.color, 0.08),
+        // Due date wins over the manual colour so urgency is always visible.
+        borderColor: DUE_COLORS[dueColor] ?? item.color ?? undefined,
+        backgroundColor: tint(DUE_COLORS[dueColor] ?? item.color, 0.08),
       }}
       className={cn(
         "rounded-md border bg-card p-2 shadow-sm transition-shadow",
@@ -1969,6 +2027,8 @@ function ItemCard({
           <span className="mt-0.5 block text-[11px] uppercase tracking-wide text-muted-foreground">
             {isTask ? t("tables.taskCard") : t("tables.topicCard")}
             {isTask ? ` · ${item.status.replace("_", " ")} · ${item.progress}%` : ""}
+            {dueColor === "overdue" ? ` · ${t("grid.overdue")}` : ""}
+            {dueColor === "today" ? ` · ${t("grid.today")}` : ""}
           </span>
         </button>
         <DropdownMenu>
