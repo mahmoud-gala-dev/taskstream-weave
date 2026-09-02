@@ -195,6 +195,13 @@ function TablesPage() {
     [columns, currentTableId],
   );
   const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  /** How many placements in this table point at archived items. */
+  const archivedCount = useMemo(
+    () =>
+      placements.filter((p) => p.tableId === currentTableId && itemById.get(p.itemId)?.archivedAt)
+        .length,
+    [placements, itemById, currentTableId],
+  );
   /** Tasks and topics currently placed anywhere in the open table. */
   const tableItems = useMemo(() => {
     const ids = new Set(
