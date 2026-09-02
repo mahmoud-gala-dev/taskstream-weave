@@ -85,6 +85,7 @@ import { bySortOrder, orderAtEnd, orderForIndex } from "@/lib/order";
 import { ICONS, PALETTE, tint } from "@/lib/palette";
 import { startSession } from "@/lib/sessions";
 import { confirmToast } from "@/lib/confirm";
+import { useSettings } from "@/lib/settings-store";
 import { readSnapshot } from "@/lib/table-snapshot";
 import type { ItemStatus, ItemType, Note, Placement, TableCell, WorkItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -643,6 +644,17 @@ function TablesPage() {
                 </>
               )}
             </Button>
+            {archivedCount || showArchived ? (
+              <Button
+                variant={showArchived ? "secondary" : "outline"}
+                size="sm"
+                aria-pressed={showArchived}
+                onClick={() => setShowArchived((v) => !v)}
+              >
+                <Archive className="size-4" />
+                {showArchived ? t("tables.hideArchived") : t("tables.archivedCount", { count: archivedCount })}
+              </Button>
+            ) : null}
           </div>
           <TableFocusTray userId={userId} items={items} />
           {!table ? (
