@@ -52,3 +52,39 @@ export function buildWorkspacePrompt(input: WorkspaceInput): string {
     "advice = 3-6 short, concrete, actionable suggestions.",
   ].join("\n");
 }
+
+export type ItemSummaryInput = {
+  title: string;
+  status: string;
+  priority: string;
+  due: string;
+  documentation: string;
+  totalMinutes: number;
+  sessionCount: number;
+  subtasks: { title: string; done: boolean }[];
+};
+
+/** Builds a per-item summary prompt (documentation + sessions + subtasks). */
+export function buildItemSummaryPrompt(input: ItemSummaryInput): string {
+  const subtasks = input.subtasks
+    .slice(0, 40)
+    .map((s) => `- [${s.done ? "x" : " "}] ${s.title}`)
+    .join("\n");
+  return [
+    "You are an assistant inside a personal work operating system.",
+    "Summarize one work item and propose the next steps. Reply as JSON only.",
+    "Answer in the same language as the item content.",
+    "",
+    `Title: ${input.title}`,
+    `Status: ${input.status} · Priority: ${input.priority} · Due: ${input.due || "(none)"}`,
+    `Tracked: ${input.totalMinutes} minutes across ${input.sessionCount} sessions`,
+    "Subtasks:",
+    subtasks || "(none)",
+    "Documentation:",
+    input.documentation.slice(0, 4000) || "(empty)",
+    "",
+    "Return: summary (one short paragraph on where this item stands),",
+    "rowNames = [] , columnNames = [],",
+    "advice = 3-5 concrete next steps, most important first.",
+  ].join("\n");
+}
