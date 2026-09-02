@@ -40,6 +40,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
 import { StylePicker } from "@/components/style-picker";
+import { InlineName } from "@/components/inline-name";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -611,14 +612,16 @@ function TablesPage() {
           ) : (
             <>
               <header className="mb-6 flex flex-wrap items-center gap-3">
-                <Input
+                <InlineName
+                  key={table.id}
                   value={table.name}
-                  onChange={(e) =>
-                    void updateRecord(COL.tables, table.id, { name: e.target.value } as never)
+                  onCommit={(name) =>
+                    void updateRecord(COL.tables, table.id, { name } as never)
                   }
-                  className="h-9 w-64 border-transparent bg-transparent px-0 text-xl font-semibold shadow-none focus-visible:border-input focus-visible:px-3"
-                  aria-label={t("tables.tableNameLabel")}
+                  className="h-9 w-64 flex-none px-2 text-xl font-semibold"
+                  ariaLabel={t("tables.tableNameLabel")}
                 />
+
                 <p className="ml-auto text-xs text-muted-foreground">
                   {t("tables.rightClickHint")}
                 </p>
@@ -1260,12 +1263,14 @@ function LineHeader({
         <GripVertical className="size-3.5" />
       </button>
       {icon ? <span aria-hidden>{icon}</span> : null}
-      <input
+      <InlineName
+        key={id}
         value={name}
-        onChange={(e) => onRename(e.target.value)}
-        className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none"
-        aria-label={t("tables.lineNameLabel", { kind: kindLabel })}
+        onCommit={onRename}
+        className="text-sm font-medium"
+        ariaLabel={t("tables.lineNameLabel", { kind: kindLabel })}
       />
+
       {onStyle ? <StylePicker color={color} icon={icon} onChange={onStyle} /> : null}
       <Button variant="ghost" size="icon" aria-label={t("tables.deleteLineAria", { kind: kindLabel })} onClick={confirmDelete}>
         <Trash2 className="size-3.5" />
