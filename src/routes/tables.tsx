@@ -40,6 +40,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
 import { StylePicker } from "@/components/style-picker";
+import { InlineName } from "@/components/inline-name";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
