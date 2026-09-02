@@ -92,6 +92,7 @@ export function InlineName({
       onClick={(event) => event.stopPropagation()}
       className={cn(
         "min-w-0 flex-1 cursor-text rounded-sm bg-transparent px-1 outline-none transition-colors hover:bg-muted/60 focus:bg-background focus:ring-1 focus:ring-ring",
+        multiline && "resize-none overflow-hidden break-words whitespace-pre-wrap leading-snug",
         className,
       )}
     />
