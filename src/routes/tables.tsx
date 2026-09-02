@@ -17,6 +17,9 @@ import {
   Archive,
   ArchiveRestore,
   Clock3,
+  Columns3,
+  Filter,
+  EyeOff,
   Copy,
   ChevronDown,
   ChevronRight,
@@ -85,11 +88,12 @@ import {
 } from "@/lib/moves";
 import { bySortOrder, orderAtEnd, orderForIndex } from "@/lib/order";
 import { ICONS, PALETTE, tint } from "@/lib/palette";
-import { startSession } from "@/lib/sessions";
+import { completedRoundsForItem, elapsedSeconds, formatDuration, startSession } from "@/lib/sessions";
+import { DUE_COLORS, dueTone, type DueTone } from "@/lib/due";
 import { confirmToast } from "@/lib/confirm";
 import { useSettings } from "@/lib/settings-store";
 import { readSnapshot } from "@/lib/table-snapshot";
-import type { ItemStatus, ItemType, Note, Placement, TableCell, WorkItem } from "@/lib/types";
+import type { ItemStatus, ItemType, Note, Placement, Priority, TableCell, WorkItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace-store";
 
@@ -137,6 +141,15 @@ function TablesPage() {
   const [focusMode, setFocusMode] = useState(false);
   const [sectionOpenOverrides, setSectionOpenOverrides] = useState<Record<string, boolean>>({});
   const [showArchived, setShowArchived] = useState(false);
+  const [filters, setFilters] = useState<QuickFilters>({
+    status: "all",
+    priority: "all",
+    due: "all",
+    topic: "all",
+  });
+  const [hideEmpty, setHideEmpty] = useState(false);
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
+  const [dueColors, setDueColors] = useState(true);
   const { settings } = useSettings();
   const swept = useRef(false);
   const navigate = useNavigate();
