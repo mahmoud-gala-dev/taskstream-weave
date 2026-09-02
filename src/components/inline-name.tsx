@@ -74,7 +74,7 @@ export function InlineName({
         timer.current = window.setTimeout(() => commit(next), delay);
       }}
       onBlur={() => commit(draft)}
-      onKeyDown={(event) => {
+      onKeyDown={(event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (event.key === "Enter") {
           event.preventDefault();
           commit(draft);
