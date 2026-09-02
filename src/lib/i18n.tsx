@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { goalsMessages } from "@/lib/i18n.extra.goals";
 import { focusMessages } from "@/lib/i18n.extra.focus";
 import { itemMessages } from "@/lib/i18n.extra.item";
+import { itemExtraMessages } from "@/lib/i18n.extra.item2";
 import { optimizerMessages } from "@/lib/i18n.extra.optimizer";
 import { tablesMessages } from "@/lib/i18n.extra.tables";
 import { gridMessages } from "@/lib/i18n.extra.grid";
@@ -386,6 +387,7 @@ export const messages = {
     ...baseMessages.en,
     ...tablesMessages.en,
     ...itemMessages.en,
+    ...itemExtraMessages.en,
     ...focusMessages.en,
     ...optimizerMessages.en,
     ...uiMessages.en,
@@ -399,6 +401,7 @@ export const messages = {
     ...baseMessages.ar,
     ...tablesMessages.ar,
     ...itemMessages.ar,
+    ...itemExtraMessages.ar,
     ...focusMessages.ar,
     ...optimizerMessages.ar,
     ...uiMessages.ar,

@@ -81,6 +81,18 @@ export type WorkItem = Base & {
   isFavorite?: boolean;
   completedAt?: number | null;
   archivedAt?: number | null;
+  /** Optional clock time for the due date, as "HH:MM" in local time. */
+  dueTime?: string | null;
+  /** Recurring due date cadence used by the reminder scheduler. */
+  recurrence?: "none" | "daily" | "weekly" | null;
+  /** When true, progress is derived from completed subtasks. */
+  autoProgress?: boolean;
+  /** Task relations (ids of other work items). */
+  blockedBy?: ID[];
+  blocks?: ID[];
+  relatedTo?: ID[];
+  /** Set when the item was promoted from a subtask. */
+  promotedFromSubtaskId?: ID | null;
 };
 
 /** Where an item appears. Entities are independent from placements. */
