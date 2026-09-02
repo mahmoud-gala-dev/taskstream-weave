@@ -944,12 +944,12 @@ function TablesPage() {
                   className={cn("grid gap-2", focusMode ? "w-full" : "min-w-fit")}
                   style={{
                     gridTemplateColumns: focusMode
-                      ? `8rem repeat(${Math.max(tableColumns.length, 1)}, minmax(0, 1fr))`
-                      : `10rem repeat(${Math.max(tableColumns.length, 1)}, minmax(15rem, 1fr))`,
+                      ? `8rem repeat(${Math.max(visibleColumns.length, 1)}, minmax(0, 1fr))`
+                      : `10rem repeat(${Math.max(visibleColumns.length, 1)}, minmax(15rem, 1fr))`,
                   }}
                 >
                   <div className="rounded-md bg-muted/40" />
-                  {tableColumns.map((col) => (
+                  {visibleColumns.map((col) => (
                     <LineHeader
                       key={col.id}
                       kind="column"
@@ -964,7 +964,7 @@ function TablesPage() {
                     />
                   ))}
 
-                  {tableRows.map((row) => (
+                  {visibleRows.map((row) => (
                     <RowLine
                       key={row.id}
                       rowId={row.id}
@@ -972,7 +972,7 @@ function TablesPage() {
                       color={row.color}
                       icon={row.icon}
                       onStyle={(patch) => void updateRecord(COL.rows, row.id, patch as never)}
-                      columns={tableColumns}
+                      columns={visibleColumns}
                       onRename={(name) => void updateRecord(COL.rows, row.id, { name } as never)}
                       onDelete={() => void deleteLineCascade("row", row.id, placements)}
                       onAddAfter={() => void addLine("row")}
@@ -985,6 +985,8 @@ function TablesPage() {
                           onStyle={(patch) => void setCellStyle(row.id, columnId, patch)}
                           placements={cellPlacements(row.id, columnId)}
                           itemById={itemById}
+                          roundsByItem={roundsByItem}
+                          dueColors={dueColors}
                           onOpen={(itemId) => void navigate({ to: "/item/$itemId", params: { itemId } })}
                           onSetStatus={(itemId, status) =>
                             void updateRecord<WorkItem>(COL.items, itemId, { status })
@@ -1043,6 +1045,32 @@ function TablesPage() {
                       )}
                     />
                   ))}
+
+                  {/* Column summary: completion and tracked time per column. */}
+                  <div className="mt-1 flex items-center rounded-md bg-muted/50 px-2 py-2 text-xs font-medium text-muted-foreground">
+                    {t("grid.summary")}
+                  </div>
+                  {visibleColumns.map((col) => {
+                    const sum = columnSummary.get(col.id);
+                    return (
+                      <div
+                        key={`summary-${col.id}`}
+                        className="mt-1 rounded-md bg-muted/30 px-2 py-2 text-xs text-muted-foreground"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span>{t("grid.summaryDone", { percent: sum?.percent ?? 0 })}</span>
+                          <span className="tabular-nums">{formatDuration(sum?.seconds ?? 0)}</span>
+                        </div>
+                        <div className="mt-1 h-1 rounded-full bg-muted">
+                          <div
+                            className="h-1 rounded-full bg-primary"
+                            style={{ width: `${sum?.percent ?? 0}%` }}
+                          />
+                        </div>
+                        <p className="mt-1">{t("grid.summaryTasks", { count: sum?.tasks ?? 0 })}</p>
+                      </div>
+                    );
+                  })}
                 </div>
                 {!tableColumns.length || !tableRows.length ? (
                   <p className="mt-4 text-sm text-muted-foreground">
