@@ -2,12 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, Check, GripVertical, Highlighter, Pause, Pin, PinOff, Play, Plus, Square, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowUpRight, Check, GripVertical, Highlighter, Pause, Pin, PinOff, Play, Plus, Square, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
+import { ItemAiSummary } from "@/components/item-ai-summary";
 import { ItemDocumentation } from "@/components/item-documentation";
+import { ItemPlacements } from "@/components/item-placements";
+import { ItemRelations } from "@/components/item-relations";
+import { ItemStickyBar } from "@/components/item-sticky-bar";
+import { ItemTimeline } from "@/components/item-timeline";
+import { LinkPreview } from "@/components/link-preview";
 import { RichDocEditor } from "@/components/rich-doc-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -18,6 +24,7 @@ import { useTick } from "@/hooks/useTick";
 import { COL, createRecord, deleteRecord, updateRecord, watchUserCollection } from "@/lib/db";
 import { bySortOrder, orderAtEnd, orderForIndex } from "@/lib/order";
 import {
+  completedRoundsForItem,
   elapsedSeconds,
   formatDuration,
   pauseSession,
@@ -64,6 +71,7 @@ export const Route = createFileRoute("/item/$itemId")({
 
 const STATUSES: ItemStatus[] = ["todo", "in_progress", "blocked", "review", "done"];
 const PRIORITIES: Priority[] = ["low", "normal", "high", "urgent"];
+const TABS = ["overview", "timeline", "sessions", "subtasks", "docs", "files", "links"] as const;
 
 function useItemChildren(itemId: string) {
   const { userId } = useWorkspace();
@@ -118,7 +126,7 @@ function useItemChildren(itemId: string) {
 function ItemWorkspace() {
   const t = useT();
   const { itemId } = Route.useParams();
-  const { userId, items, sessions } = useWorkspace();
+  const { userId, items, sessions, placements, tables, rows, columns } = useWorkspace();
   const item = items.find((i) => i.id === itemId) ?? null;
   const { subtasks, notes, links, attachments } = useItemChildren(itemId);
 
@@ -130,6 +138,9 @@ function ItemWorkspace() {
   const [highlight, setHighlight] = useState<{ start: number; end: number } | null>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const [linkDraft, setLinkDraft] = useState("");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("overview");
+  const titleRef = useRef<HTMLInputElement>(null);
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
   const subtaskSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
@@ -151,6 +162,57 @@ function ItemWorkspace() {
     .sort((a, b) => b.startedAt - a.startedAt);
   const totalSeconds = itemSessions.reduce((acc, s) => acc + elapsedSeconds(s, now), 0);
   const open = itemSessions.find((s) => s.status !== "stopped") ?? null;
+  const doneSubtasks = subtasks.filter((s) => s.done).length;
+  const itemPlacements = useMemo(
+    () => placements.filter((p) => p.itemId === itemId),
+    [placements, itemId],
+  );
+  const doneRounds = completedRoundsForItem(sessions, itemId);
+
+  const toggleTimer = useCallback(() => {
+    if (!item) return;
+    if (!open) {
+      if (userId) void startSession(userId, { id: item.id, type: item.type, title: item.title });
+      return;
+    }
+    if (open.status === "running") void pauseSession(open);
+    else void resumeSession(open);
+  }, [item, open, userId]);
+
+  // Auto progress: mirror the share of completed subtasks unless overridden manually.
+  useEffect(() => {
+    if (!item?.autoProgress || !subtasks.length) return;
+    const next = Math.round((doneSubtasks / subtasks.length) * 100);
+    if (next !== item.progress) {
+      void updateRecord<WorkItem>(COL.items, item.id, { progress: next });
+    }
+  }, [item?.autoProgress, item?.progress, item?.id, doneSubtasks, subtasks.length]);
+
+  // In-page keyboard shortcuts.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (target && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName))) return;
+      const key = event.key.toLowerCase();
+      if (key === "s") {
+        event.preventDefault();
+        toggleTimer();
+      } else if (key === "n") {
+        event.preventDefault();
+        setTab("subtasks");
+        setTimeout(() => subtaskInputRef.current?.focus(), 50);
+      } else if (key === "e") {
+        event.preventDefault();
+        titleRef.current?.focus();
+      } else if (/^[1-7]$/.test(event.key)) {
+        event.preventDefault();
+        setTab(TABS[Number(event.key) - 1]!);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggleTimer]);
 
   if (!item) {
     return (
@@ -174,19 +236,24 @@ function ItemWorkspace() {
         <ArrowLeft className="mr-1 inline size-4" /> {t("item.backToTables")}
       </Link>
 
+      <ItemStickyBar item={item} userId={userId} open={open} totalSeconds={totalSeconds} now={now} />
+
       <header className="mt-4">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{item.type}</p>
         <Input
+          ref={titleRef}
           value={item.title}
           onChange={(e) => patch({ title: e.target.value })}
           aria-label={t("item.titleLabel")}
           className="mt-1 h-auto border-transparent bg-transparent px-0 text-2xl font-semibold shadow-none focus-visible:border-input focus-visible:px-3"
         />
+        <p className="mt-1 text-xs text-muted-foreground">{t("item.shortcuts.hint")}</p>
       </header>
 
-      <Tabs defaultValue="overview" className="mt-6">
+      <Tabs value={tab} onValueChange={(value) => setTab(value as (typeof TABS)[number])} className="mt-6">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="overview">{t("item.tab.overview")}</TabsTrigger>
+          <TabsTrigger value="timeline">{t("item.tab.timeline")}</TabsTrigger>
           <TabsTrigger value="sessions">{t("item.tab.sessions")}</TabsTrigger>
           <TabsTrigger value="subtasks">{t("item.tab.subtasks", { done: subtasks.filter((s) => s.done).length, total: subtasks.length })}</TabsTrigger>
           <TabsTrigger value="docs">{t("item.tab.docs")}</TabsTrigger>
@@ -239,6 +306,29 @@ function ItemWorkspace() {
           />
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="dueTime">{t("item.due.time")}</Label>
+          <input
+            id="dueTime"
+            type="time"
+            value={item.dueTime ?? ""}
+            onChange={(e) => patch({ dueTime: e.target.value || null })}
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="recurrence">{t("item.due.repeat")}</Label>
+          <select
+            id="recurrence"
+            value={item.recurrence ?? "none"}
+            onChange={(e) => patch({ recurrence: e.target.value as "none" | "daily" | "weekly" })}
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="none">{t("item.repeat.none")}</option>
+            <option value="daily">{t("item.repeat.daily")}</option>
+            <option value="weekly">{t("item.repeat.weekly")}</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="estimatedRounds">{t("plan.estimate")}</Label>
           <input
             id="estimatedRounds"
@@ -258,9 +348,21 @@ function ItemWorkspace() {
             max={100}
             step={5}
             value={item.progress}
+            disabled={!!item.autoProgress}
             onChange={(e) => patch({ progress: Number(e.target.value) })}
             className="w-full"
           />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={!!item.autoProgress}
+              onChange={(e) => patch({ autoProgress: e.target.checked })}
+            />
+            {t("item.autoProgress")}
+          </label>
+          {item.autoProgress ? (
+            <p className="text-xs text-muted-foreground">{t("item.autoProgressHint")}</p>
+          ) : null}
         </div>
       </section>
       <section className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -268,9 +370,50 @@ function ItemWorkspace() {
         <SummaryCard label={t("item.summary.sessions")} value={String(itemSessions.length)} />
         <SummaryCard
           label={t("item.summary.subtasksDone")}
-          value={`${subtasks.filter((s) => s.done).length}/${subtasks.length}`}
+          value={`${doneSubtasks}/${subtasks.length}`}
         />
       </section>
+
+      <section className="mt-6 rounded-lg border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">{t("item.estimate.title")}</h2>
+        {item.estimatedRounds ? (
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("item.estimate.line", {
+                planned: item.estimatedRounds,
+                done: doneRounds,
+                left: formatDuration(Math.max(0, item.estimatedRounds - doneRounds) * 25 * 60),
+              })}
+            </p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300"
+                style={{ width: `${Math.min(100, Math.round((doneRounds / item.estimatedRounds) * 100))}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">{t("item.estimate.noPlan")}</p>
+        )}
+      </section>
+
+      <ItemRelations item={item} items={items} />
+      <ItemPlacements placements={itemPlacements} tables={tables} rows={rows} columns={columns} />
+      <ItemAiSummary item={item} subtasks={subtasks} sessions={itemSessions} now={now} />
+      <div className="pb-10" />
+        </TabsContent>
+
+        <TabsContent value="timeline">
+          <ItemTimeline
+            userId={userId}
+            item={item}
+            sessions={itemSessions}
+            subtasks={subtasks}
+            notes={notes}
+            links={links}
+            attachments={attachments}
+            now={now}
+          />
         </TabsContent>
 
         <TabsContent value="sessions">
@@ -347,7 +490,9 @@ function ItemWorkspace() {
         <DndContext sensors={subtaskSensors} collisionDetection={closestCenter} onDragEnd={reorderSubtask}>
           <SortableContext items={subtasks.map((s) => s.id)} strategy={verticalListSortingStrategy}>
             <ul className="mt-3 space-y-2">
-              {subtasks.map((st) => <SortableSubtask key={st.id} subtask={st} />)}
+              {subtasks.map((st) => (
+                <SortableSubtask key={st.id} subtask={st} parent={item} userId={userId} />
+              ))}
           {!subtasks.length ? (
             <li className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
               {t("item.subtasks.empty")}
@@ -372,6 +517,7 @@ function ItemWorkspace() {
           }}
         >
           <Input
+            ref={subtaskInputRef}
             value={subtaskDraft}
             onChange={(e) => setSubtaskDraft(e.target.value)}
             placeholder={t("item.subtasks.addPlaceholder")}
@@ -473,14 +619,7 @@ function ItemWorkspace() {
         <ul className="mt-2 space-y-1 text-sm">
           {links.map((l) => (
             <li key={l.id} className="flex items-center gap-2">
-              <a
-                href={l.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="min-w-0 flex-1 truncate text-primary hover:underline"
-              >
-                {l.title || l.url}
-              </a>
+              <LinkPreview link={l} />
               <button
                 type="button"
                 className="text-xs text-muted-foreground hover:underline"
@@ -530,8 +669,35 @@ function SummaryCard({ label, value, mono }: { label: string; value: string; mon
   );
 }
 
-function SortableSubtask({ subtask }: { subtask: Subtask }) {
+function SortableSubtask({
+  subtask,
+  parent,
+  userId,
+}: {
+  subtask: Subtask;
+  parent: WorkItem;
+  userId: string | null;
+}) {
   const t = useT();
+
+  async function promote() {
+    if (!userId) return;
+    const id = await createRecord<WorkItem>(COL.items, userId, {
+      type: "task",
+      title: subtask.title,
+      status: subtask.done ? "done" : "todo",
+      priority: parent.priority,
+      progress: subtask.done ? 100 : 0,
+      parentTopicId: parent.type === "topic" ? parent.id : (parent.parentTopicId ?? null),
+      promotedFromSubtaskId: subtask.id,
+      relatedTo: [parent.id],
+    } as never);
+    await updateRecord<WorkItem>(COL.items, parent.id, {
+      relatedTo: Array.from(new Set([...(parent.relatedTo ?? []), id])),
+    });
+    toast.success(t("item.subtasks.promoted"));
+  }
+
   const sortable = useSortable({ id: subtask.id });
   return (
     <li ref={sortable.setNodeRef} style={{ transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition }} className="group">
@@ -541,6 +707,7 @@ function SortableSubtask({ subtask }: { subtask: Subtask }) {
           <span aria-hidden className={"flex size-5 shrink-0 items-center justify-center rounded-full border transition-all " + (subtask.done ? "border-emerald-500 bg-emerald-500 text-white" : "border-muted-foreground/40 text-transparent group-hover:border-primary")}><Check className="size-3.5" /></span>
           <span className={"min-w-0 truncate text-sm " + (subtask.done ? "text-muted-foreground line-through" : "")}>{subtask.title}</span>
         </button>
+        <Button variant="ghost" size="icon" aria-label={t("item.subtasks.promote")} title={t("item.subtasks.promote")} onClick={() => void promote()}><ArrowUpRight className="size-4" /></Button>
         <Button variant="ghost" size="icon" aria-label={t("item.subtasks.deleteAria", { title: subtask.title })} onClick={() => void deleteRecord(COL.subtasks, subtask.id)}><Trash2 className="size-4" /></Button>
       </div>
     </li>

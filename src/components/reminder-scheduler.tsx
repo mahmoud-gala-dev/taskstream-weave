@@ -6,6 +6,26 @@ import { completedRoundsForItem } from "@/lib/sessions";
 import { useSettings } from "@/lib/settings-store";
 import { useWorkspace } from "@/lib/workspace-store";
 
+/** Applies the optional clock time and repeat cadence to a due date. */
+function nextOccurrence(
+  dueDate: number,
+  dueTime: string | null,
+  recurrence: "none" | "daily" | "weekly" | null,
+  now: number,
+): number {
+  const target = new Date(dueDate);
+  if (dueTime && /^\d{2}:\d{2}$/.test(dueTime)) {
+    const [h, m] = dueTime.split(":").map(Number);
+    target.setHours(h ?? 0, m ?? 0, 0, 0);
+  }
+  let at = target.getTime();
+  if (recurrence === "daily" || recurrence === "weekly") {
+    const step = (recurrence === "daily" ? 1 : 7) * 24 * 60 * 60_000;
+    while (at < now) at += step;
+  }
+  return at;
+}
+
 type Reminder = { id: string; at: number; title: string; body: string; sent: boolean };
 
 function urlBase64ToUint8Array(value: string): Uint8Array {
@@ -28,13 +48,14 @@ export function ReminderScheduler() {
     const now = Date.now();
     return items.flatMap((item) => {
       if (item.type !== "task" || item.status === "done" || !item.dueDate) return [];
+      const due = nextOccurrence(item.dueDate, item.dueTime ?? null, item.recurrence ?? "none", now);
       const done = completedRoundsForItem(sessions, item.id);
       const left = Math.max(0, (item.estimatedRounds ?? 0) - done);
       const body = left
         ? `${left} focus round${left === 1 ? "" : "s"} remaining before the due time.`
         : "This task is due soon.";
       const lead = Math.max(15 * 60_000, Math.min(24 * 60 * 60_000, left * settings.focusMinutes * 60_000));
-      return [{ id: `due-${item.id}-${item.dueDate}`, at: Math.max(now, item.dueDate - lead), title: item.title, body, sent: false }];
+      return [{ id: `due-${item.id}-${due}`, at: Math.max(now, due - lead), title: item.title, body, sent: false }];
     });
   }, [items, sessions, settings.notificationsEnabled, settings.focusMinutes]);
 

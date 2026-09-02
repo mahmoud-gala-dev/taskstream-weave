@@ -2,8 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import {
+  buildItemSummaryPrompt,
   buildPrompt,
   buildWorkspacePrompt,
+  type ItemSummaryInput,
   type OptimizeInput,
   type WorkspaceInput,
 } from "@/lib/ai-prompt";
@@ -40,3 +42,21 @@ const workspaceSchema = z.object({
 export const optimizeWorkspace = createServerFn({ method: "POST" })
   .validator((data: unknown) => workspaceSchema.parse(data))
   .handler(async ({ data }) => requestSuggestion(buildWorkspacePrompt(data as WorkspaceInput)));
+
+const itemSummarySchema = z.object({
+  title: z.string().trim().max(200).default(""),
+  status: z.string().trim().max(40).default(""),
+  priority: z.string().trim().max(40).default(""),
+  due: z.string().trim().max(60).default(""),
+  documentation: z.string().max(6000).default(""),
+  totalMinutes: z.number().min(0).max(1_000_000).default(0),
+  sessionCount: z.number().min(0).max(100000).default(0),
+  subtasks: z
+    .array(z.object({ title: z.string().max(200), done: z.boolean() }))
+    .max(60)
+    .default([]),
+});
+
+export const summarizeItem = createServerFn({ method: "POST" })
+  .validator((data: unknown) => itemSummarySchema.parse(data))
+  .handler(async ({ data }) => requestSuggestion(buildItemSummaryPrompt(data as ItemSummaryInput)));
