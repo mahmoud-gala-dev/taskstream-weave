@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActiveRouteImport } from './routes/active'
+import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CalendarRouteImport } from './routes/calendar'
@@ -38,6 +39,11 @@ const IndexRoute = IndexRouteImport.update({
 const ActiveRoute = ActiveRouteImport.update({
   id: '/active',
   path: '/active',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArchiveRoute = ArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssistantRoute = AssistantRouteImport.update({
@@ -134,6 +140,7 @@ const ApiPublicPushCronRoute = ApiPublicPushCronRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/active': typeof ActiveRoute
+  '/archive': typeof ArchiveRoute
   '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/active': typeof ActiveRoute
+  '/archive': typeof ArchiveRoute
   '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/active': typeof ActiveRoute
+  '/archive': typeof ArchiveRoute
   '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/active'
+    | '/archive'
     | '/assistant'
     | '/auth'
     | '/calendar'
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/active'
+    | '/archive'
     | '/assistant'
     | '/auth'
     | '/calendar'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/active'
+    | '/archive'
     | '/assistant'
     | '/auth'
     | '/calendar'
@@ -270,6 +282,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActiveRoute: typeof ActiveRoute
+  ArchiveRoute: typeof ArchiveRoute
   AssistantRoute: typeof AssistantRoute
   AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/active'
       fullPath: '/active'
       preLoaderRoute: typeof ActiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive': {
+      id: '/archive'
+      path: '/archive'
+      fullPath: '/archive'
+      preLoaderRoute: typeof ArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/assistant': {
@@ -438,6 +458,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActiveRoute: ActiveRoute,
+  ArchiveRoute: ArchiveRoute,
   AssistantRoute: AssistantRoute,
   AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,

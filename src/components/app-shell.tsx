@@ -19,6 +19,7 @@ import {
 
   Timer,
   Wand2,
+  Archive,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 
@@ -54,6 +55,7 @@ const NAV = [
   { to: "/topics", key: "nav.topics", icon: Tags },
   { to: "/documentation", key: "nav.documentation", icon: FileText },
   { to: "/search", key: "nav.search", icon: Search },
+  { to: "/archive", key: "nav.archive", icon: Archive },
   { to: "/install", key: "nav.install", icon: Download },
   { to: "/settings", key: "nav.settings", icon: Settings },
 ] as const satisfies ReadonlyArray<{ to: string; key: MessageKey; icon: typeof Timer }>;

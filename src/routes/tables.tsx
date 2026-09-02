@@ -17,6 +17,9 @@ import {
   Archive,
   ArchiveRestore,
   Clock3,
+  Columns3,
+  Filter,
+  EyeOff,
   Copy,
   ChevronDown,
   ChevronRight,
@@ -85,11 +88,12 @@ import {
 } from "@/lib/moves";
 import { bySortOrder, orderAtEnd, orderForIndex } from "@/lib/order";
 import { ICONS, PALETTE, tint } from "@/lib/palette";
-import { startSession } from "@/lib/sessions";
+import { completedRoundsForItem, elapsedSeconds, formatDuration, startSession } from "@/lib/sessions";
+import { DUE_COLORS, dueTone, type DueTone } from "@/lib/due";
 import { confirmToast } from "@/lib/confirm";
 import { useSettings } from "@/lib/settings-store";
 import { readSnapshot } from "@/lib/table-snapshot";
-import type { ItemStatus, ItemType, Note, Placement, TableCell, WorkItem } from "@/lib/types";
+import type { ItemStatus, ItemType, Note, Placement, Priority, TableCell, WorkItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace-store";
 
@@ -119,6 +123,14 @@ export const Route = createFileRoute("/tables")({
   ),
 });
 
+/** Quick, non-destructive filters applied on top of the open table. */
+type QuickFilters = {
+  status: ItemStatus | "all";
+  priority: Priority | "all";
+  due: "all" | "overdue" | "today" | "week" | "none";
+  topic: string;
+};
+
 type DragData =
   | { kind: "section"; id: string }
   | { kind: "table"; id: string; sectionId: string }
@@ -137,6 +149,15 @@ function TablesPage() {
   const [focusMode, setFocusMode] = useState(false);
   const [sectionOpenOverrides, setSectionOpenOverrides] = useState<Record<string, boolean>>({});
   const [showArchived, setShowArchived] = useState(false);
+  const [filters, setFilters] = useState<QuickFilters>({
+    status: "all",
+    priority: "all",
+    due: "all",
+    topic: "all",
+  });
+  const [hideEmpty, setHideEmpty] = useState(false);
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
+  const [dueColors, setDueColors] = useState(true);
   const { settings } = useSettings();
   const swept = useRef(false);
   const navigate = useNavigate();
@@ -215,6 +236,89 @@ function TablesPage() {
   const cellByKey = useMemo(
     () => new Map(cells.map((c) => [`${c.rowId}:${c.columnId}`, c])),
     [cells],
+  );
+
+  /** Completed Pomodoro rounds per item, used by the per-cell counters. */
+  const roundsByItem = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) map.set(item.id, completedRoundsForItem(sessions, item.id));
+    return map;
+  }, [items, sessions]);
+
+  /** Tracked seconds per item, used by the per-column summary row. */
+  const secondsByItem = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const session of sessions)
+      map.set(session.itemId, (map.get(session.itemId) ?? 0) + elapsedSeconds(session));
+    return map;
+  }, [sessions]);
+
+  const filtersActive =
+    filters.status !== "all" ||
+    filters.priority !== "all" ||
+    filters.due !== "all" ||
+    filters.topic !== "all";
+
+  /** Placements of the open table after archive state and quick filters. */
+  const visiblePlacements = useMemo(() => {
+    const now = Date.now();
+    return placements.filter((p) => {
+      if (p.tableId !== currentTableId) return false;
+      const item = itemById.get(p.itemId);
+      if (!item) return false;
+      if (!showArchived && item.archivedAt) return false;
+      if (filters.status !== "all" && item.status !== filters.status) return false;
+      if (filters.priority !== "all" && item.priority !== filters.priority) return false;
+      if (filters.topic !== "all" && (item.parentTopicId ?? "") !== filters.topic) return false;
+      if (filters.due !== "all") {
+        const tone = dueTone(item.dueDate, now);
+        if (filters.due === "none" && tone !== "none") return false;
+        if (filters.due === "overdue" && tone !== "overdue") return false;
+        if (filters.due === "today" && tone !== "today") return false;
+        if (filters.due === "week" && tone !== "today" && tone !== "soon") return false;
+      }
+      return true;
+    });
+  }, [placements, currentTableId, itemById, showArchived, filters]);
+
+  /** Columns kept on screen: not hidden manually, and not empty when collapsing. */
+  const visibleColumns = useMemo(
+    () =>
+      tableColumns.filter(
+        (c) =>
+          !hiddenColumns.includes(c.id) &&
+          (!hideEmpty || visiblePlacements.some((p) => p.columnId === c.id)),
+      ),
+    [tableColumns, hiddenColumns, hideEmpty, visiblePlacements],
+  );
+  const visibleRows = useMemo(
+    () =>
+      tableRows.filter((r) => !hideEmpty || visiblePlacements.some((p) => p.rowId === r.id)),
+    [tableRows, hideEmpty, visiblePlacements],
+  );
+
+  /** Completion and tracked time per visible column. */
+  const columnSummary = useMemo(() => {
+    const map = new Map<string, { tasks: number; percent: number; seconds: number }>();
+    for (const column of visibleColumns) {
+      const ids = new Set(
+        visiblePlacements.filter((p) => p.columnId === column.id).map((p) => p.itemId),
+      );
+      const tasks = [...ids].map((id) => itemById.get(id)).filter((i): i is WorkItem => !!i);
+      const onlyTasks = tasks.filter((i) => i.type === "task");
+      const percent = onlyTasks.length
+        ? Math.round(onlyTasks.reduce((sum, i) => sum + (i.progress ?? 0), 0) / onlyTasks.length)
+        : 0;
+      const seconds = [...ids].reduce((sum, id) => sum + (secondsByItem.get(id) ?? 0), 0);
+      map.set(column.id, { tasks: onlyTasks.length, percent, seconds });
+    }
+    return map;
+  }, [visibleColumns, visiblePlacements, itemById, secondsByItem]);
+
+  /** Topics available as a quick-filter dimension. */
+  const topicOptions = useMemo(
+    () => items.filter((i) => i.type === "topic").sort((a, b) => a.title.localeCompare(b.title)),
+    [items],
   );
 
   /** Cell metadata is created lazily — the first color or icon creates the document. */
@@ -390,14 +494,8 @@ function TablesPage() {
   }
 
   function cellPlacements(rowId: string, columnId: string) {
-    return placements
-      .filter(
-        (p) =>
-          p.tableId === currentTableId &&
-          p.rowId === rowId &&
-          p.columnId === columnId &&
-          (showArchived || !itemById.get(p.itemId)?.archivedAt),
-      )
+    return visiblePlacements
+      .filter((p) => p.rowId === rowId && p.columnId === columnId)
       .sort(bySortOrder);
   }
 
@@ -657,6 +755,121 @@ function TablesPage() {
                 {showArchived ? t("tables.hideArchived") : t("tables.archivedCount", { count: archivedCount })}
               </Button>
             ) : null}
+            <Button
+              variant={hideEmpty ? "secondary" : "outline"}
+              size="sm"
+              aria-pressed={hideEmpty}
+              onClick={() => setHideEmpty((v) => !v)}
+            >
+              <EyeOff className="size-4" />
+              {hideEmpty ? t("grid.showEmpty") : t("grid.hideEmpty")}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant={hiddenColumns.length ? "secondary" : "outline"} size="sm">
+                  <Columns3 className="size-4" />
+                  {hiddenColumns.length
+                    ? t("grid.hiddenColumns", { count: hiddenColumns.length })
+                    : t("grid.columns")}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {tableColumns.map((col) => (
+                  <DropdownMenuItem
+                    key={col.id}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setHiddenColumns((current) =>
+                        current.includes(col.id)
+                          ? current.filter((id) => id !== col.id)
+                          : [...current, col.id],
+                      );
+                    }}
+                  >
+                    <span className="w-4">{hiddenColumns.includes(col.id) ? "" : "✓"}</span>
+                    <span className="truncate">{col.name}</span>
+                  </DropdownMenuItem>
+                ))}
+                {hiddenColumns.length ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setHiddenColumns([])}>
+                      {t("grid.showAllColumns")}
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant={dueColors ? "secondary" : "outline"}
+              size="sm"
+              aria-pressed={dueColors}
+              onClick={() => setDueColors((v) => !v)}
+            >
+              {t("grid.dueColors")}
+            </Button>
+          </div>
+
+          {/* Quick filter bar: narrows the open table without leaving the page. */}
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/40 p-2">
+            <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <Filter className="size-3.5" /> {t("grid.filters")}
+            </span>
+            <FilterSelect
+              label={t("grid.filterStatus")}
+              value={filters.status}
+              onChange={(status) => setFilters((f) => ({ ...f, status: status as QuickFilters["status"] }))}
+              options={[
+                { value: "all", label: t("grid.all") },
+                ...STATUSES.map((st) => ({ value: st.value, label: t(st.labelKey) })),
+              ]}
+            />
+            <FilterSelect
+              label={t("grid.filterPriority")}
+              value={filters.priority}
+              onChange={(priority) =>
+                setFilters((f) => ({ ...f, priority: priority as QuickFilters["priority"] }))
+              }
+              options={[
+                { value: "all", label: t("grid.all") },
+                { value: "urgent", label: "urgent" },
+                { value: "high", label: "high" },
+                { value: "normal", label: "normal" },
+                { value: "low", label: "low" },
+              ]}
+            />
+            <FilterSelect
+              label={t("grid.filterDue")}
+              value={filters.due}
+              onChange={(due) => setFilters((f) => ({ ...f, due: due as QuickFilters["due"] }))}
+              options={[
+                { value: "all", label: t("grid.all") },
+                { value: "overdue", label: t("grid.dueOverdue") },
+                { value: "today", label: t("grid.dueToday") },
+                { value: "week", label: t("grid.dueWeek") },
+                { value: "none", label: t("grid.dueNone") },
+              ]}
+            />
+            <FilterSelect
+              label={t("grid.filterTopic")}
+              value={filters.topic}
+              onChange={(topic) => setFilters((f) => ({ ...f, topic }))}
+              options={[
+                { value: "all", label: t("grid.all") },
+                ...topicOptions.map((topic) => ({ value: topic.id, label: topic.title })),
+              ]}
+            />
+            {filtersActive ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setFilters({ status: "all", priority: "all", due: "all", topic: "all" })
+                }
+              >
+                {t("grid.clearFilters")}
+              </Button>
+            ) : null}
           </div>
           <TableFocusTray userId={userId} items={items} />
           {!table ? (
@@ -731,12 +944,12 @@ function TablesPage() {
                   className={cn("grid gap-2", focusMode ? "w-full" : "min-w-fit")}
                   style={{
                     gridTemplateColumns: focusMode
-                      ? `8rem repeat(${Math.max(tableColumns.length, 1)}, minmax(0, 1fr))`
-                      : `10rem repeat(${Math.max(tableColumns.length, 1)}, minmax(15rem, 1fr))`,
+                      ? `8rem repeat(${Math.max(visibleColumns.length, 1)}, minmax(0, 1fr))`
+                      : `10rem repeat(${Math.max(visibleColumns.length, 1)}, minmax(15rem, 1fr))`,
                   }}
                 >
                   <div className="rounded-md bg-muted/40" />
-                  {tableColumns.map((col) => (
+                  {visibleColumns.map((col) => (
                     <LineHeader
                       key={col.id}
                       kind="column"
@@ -751,7 +964,7 @@ function TablesPage() {
                     />
                   ))}
 
-                  {tableRows.map((row) => (
+                  {visibleRows.map((row) => (
                     <RowLine
                       key={row.id}
                       rowId={row.id}
@@ -759,7 +972,7 @@ function TablesPage() {
                       color={row.color}
                       icon={row.icon}
                       onStyle={(patch) => void updateRecord(COL.rows, row.id, patch as never)}
-                      columns={tableColumns}
+                      columns={visibleColumns}
                       onRename={(name) => void updateRecord(COL.rows, row.id, { name } as never)}
                       onDelete={() => void deleteLineCascade("row", row.id, placements)}
                       onAddAfter={() => void addLine("row")}
@@ -772,6 +985,8 @@ function TablesPage() {
                           onStyle={(patch) => void setCellStyle(row.id, columnId, patch)}
                           placements={cellPlacements(row.id, columnId)}
                           itemById={itemById}
+                          roundsByItem={roundsByItem}
+                          dueColors={dueColors}
                           onOpen={(itemId) => void navigate({ to: "/item/$itemId", params: { itemId } })}
                           onSetStatus={(itemId, status) =>
                             void updateRecord<WorkItem>(COL.items, itemId, { status })
@@ -830,6 +1045,32 @@ function TablesPage() {
                       )}
                     />
                   ))}
+
+                  {/* Column summary: completion and tracked time per column. */}
+                  <div className="mt-1 flex items-center rounded-md bg-muted/50 px-2 py-2 text-xs font-medium text-muted-foreground">
+                    {t("grid.summary")}
+                  </div>
+                  {visibleColumns.map((col) => {
+                    const sum = columnSummary.get(col.id);
+                    return (
+                      <div
+                        key={`summary-${col.id}`}
+                        className="mt-1 rounded-md bg-muted/30 px-2 py-2 text-xs text-muted-foreground"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span>{t("grid.summaryDone", { percent: sum?.percent ?? 0 })}</span>
+                          <span className="tabular-nums">{formatDuration(sum?.seconds ?? 0)}</span>
+                        </div>
+                        <div className="mt-1 h-1 rounded-full bg-muted">
+                          <div
+                            className="h-1 rounded-full bg-primary"
+                            style={{ width: `${sum?.percent ?? 0}%` }}
+                          />
+                        </div>
+                        <p className="mt-1">{t("grid.summaryTasks", { count: sum?.tasks ?? 0 })}</p>
+                      </div>
+                    );
+                  })}
                 </div>
                 {!tableColumns.length || !tableRows.length ? (
                   <p className="mt-4 text-sm text-muted-foreground">
@@ -889,6 +1130,36 @@ function TablesPage() {
         ) : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+/** Compact labelled <select> used by the quick filter bar. */
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex items-center gap-1 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-7 rounded-md border border-border bg-background px-1.5 text-xs"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -1441,6 +1712,8 @@ function Cell({
   onStyle,
   placements,
   itemById,
+  roundsByItem,
+  dueColors,
   onOpen,
   onAddItem,
   onRemove,
@@ -1460,6 +1733,8 @@ function Cell({
   onStyle: (patch: CellPatch) => void;
   placements: Placement[];
   itemById: Map<string, WorkItem>;
+  roundsByItem: Map<string, number>;
+  dueColors: boolean;
   onOpen: (itemId: string) => void;
   onAddItem: (type: ItemType, title: string) => void;
   onRemove: (placementId: string) => void;
@@ -1480,6 +1755,20 @@ function Cell({
   const [editingNote, setEditingNote] = useState(false);
   const [adding, setAdding] = useState<ItemType | null>(null);
   const [draft, setDraft] = useState("");
+
+  /** Tasks in this cell plus the Pomodoro rounds still owed on them. */
+  const cellCount = useMemo(() => {
+    let tasks = 0;
+    let rounds = 0;
+    for (const p of placements) {
+      const item = itemById.get(p.itemId);
+      if (!item || item.type !== "task") continue;
+      tasks += 1;
+      const planned = item.estimatedRounds ?? 0;
+      rounds += Math.max(0, planned - (roundsByItem.get(item.id) ?? 0));
+    }
+    return { tasks, rounds };
+  }, [placements, itemById, roundsByItem]);
 
   function submitNew() {
     const title = draft.trim();
@@ -1511,6 +1800,12 @@ function Cell({
         </p>
       ) : null}
 
+      {placements.length ? (
+        <p className="text-[11px] font-medium text-muted-foreground">
+          {t("grid.cellCounter", { tasks: cellCount.tasks, rounds: cellCount.rounds })}
+        </p>
+      ) : null}
+
       <CellNote
         note={cell?.note}
         noteImage={cell?.noteImage}
@@ -1535,6 +1830,7 @@ function Cell({
             onSetProgress={(progress) => onSetProgress(item.id, progress)}
             onSetStyle={(patch) => onSetItemStyle(item.id, patch)}
             onFocus={() => onFocusItem(item.id)}
+            dueColor={dueColors ? dueTone(item.dueDate) : "none"}
             onArchive={() =>
               void updateRecord<WorkItem>(COL.items, item.id, {
                 archivedAt: item.archivedAt ? null : Date.now(),
@@ -1663,6 +1959,7 @@ function ItemCard({
   onSetStyle,
   onFocus,
   onArchive,
+  dueColor,
   onCopyToTable,
   otherTables,
 }: {
@@ -1677,6 +1974,7 @@ function ItemCard({
   onSetStyle: (patch: StylePatch) => void;
   onFocus: () => void;
   onArchive: () => void;
+  dueColor: DueTone;
   onCopyToTable: (tableId: string) => void;
   otherTables: { id: string; name: string }[];
 }) {
@@ -1697,8 +1995,9 @@ function ItemCard({
       ref={setNodeRef}
       style={{
         transform: CSS.Translate.toString(transform),
-        borderColor: item.color ?? undefined,
-        backgroundColor: tint(item.color, 0.08),
+        // Due date wins over the manual colour so urgency is always visible.
+        borderColor: DUE_COLORS[dueColor] ?? item.color ?? undefined,
+        backgroundColor: tint(DUE_COLORS[dueColor] ?? item.color, 0.08),
       }}
       className={cn(
         "rounded-md border bg-card p-2 shadow-sm transition-shadow",
@@ -1728,6 +2027,8 @@ function ItemCard({
           <span className="mt-0.5 block text-[11px] uppercase tracking-wide text-muted-foreground">
             {isTask ? t("tables.taskCard") : t("tables.topicCard")}
             {isTask ? ` · ${item.status.replace("_", " ")} · ${item.progress}%` : ""}
+            {dueColor === "overdue" ? ` · ${t("grid.overdue")}` : ""}
+            {dueColor === "today" ? ` · ${t("grid.today")}` : ""}
           </span>
         </button>
         <DropdownMenu>
