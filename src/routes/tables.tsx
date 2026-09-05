@@ -1457,11 +1457,16 @@ function CellNote({
       <button
         type="button"
         onClick={() => onEditingChange(true)}
-        className="flex w-full flex-col gap-1 rounded-md bg-muted/40 p-1 text-start text-[11px] text-muted-foreground hover:bg-muted"
+        className="group flex w-full flex-col gap-1.5 rounded-lg border border-amber-500/25 border-s-4 border-s-amber-500/70 bg-amber-500/[0.08] p-2 text-start text-[11px] leading-relaxed text-foreground/80 shadow-sm transition hover:border-amber-500/45 hover:bg-amber-500/[0.14]"
       >
-        {note ? <span className="line-clamp-2">{note}</span> : null}
+        {note ? (
+          <span className="flex items-start gap-1.5">
+            <StickyNote className="mt-px size-3 shrink-0 text-amber-600" aria-hidden />
+            <span className="line-clamp-3 whitespace-pre-wrap break-words">{note}</span>
+          </span>
+        ) : null}
         {noteImage ? (
-          <img src={noteImage} alt={t("tables.noteSnapshotAlt")} className="max-h-24 rounded border border-border object-contain" />
+          <img src={noteImage} alt={t("tables.noteSnapshotAlt")} className="max-h-24 w-full rounded-md border border-amber-500/25 object-contain" />
         ) : null}
       </button>
     );
@@ -2055,8 +2060,8 @@ function ItemCard({
         "rounded-md border bg-card p-2 shadow-sm transition-shadow",
         item.archivedAt && "opacity-60 saturate-50",
         isTask
-          ? "border-border border-s-4 hover:shadow-md"
-          : "border-primary/35 border-s-4 border-s-primary bg-accent/35 shadow-none",
+          ? "rounded-md border-border border-s-4 hover:shadow-md"
+          : "rounded-lg border-2 border-dashed border-primary/45 bg-primary/[0.06] shadow-none",
         isDragging && "opacity-40",
         isOver && "ring-2 ring-primary",
       )}
@@ -2072,7 +2077,12 @@ function ItemCard({
           <GripVertical className="size-3.5" />
         </button>
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-start">
-          <span className="block text-sm leading-snug">
+          <span
+            className={cn(
+              "block text-sm leading-snug",
+              isTask ? "" : "font-semibold uppercase tracking-wide text-primary",
+            )}
+          >
             <span aria-hidden>{item.icon ?? (isTask ? "✓" : "◫")} </span>
             {item.title}
           </span>

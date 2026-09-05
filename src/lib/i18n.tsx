@@ -7,6 +7,7 @@ import { itemExtraMessages } from "@/lib/i18n.extra.item2";
 import { optimizerMessages } from "@/lib/i18n.extra.optimizer";
 import { tablesMessages } from "@/lib/i18n.extra.tables";
 import { gridMessages } from "@/lib/i18n.extra.grid";
+import { archiveMessages } from "@/lib/i18n.extra.archive";
 import { uiMessages } from "@/lib/i18n.extra.ui";
 import { shortcutsMessages } from "@/lib/i18n.extra.shortcuts";
 import { reportMessages } from "@/lib/i18n.extra.report";
@@ -396,6 +397,7 @@ export const messages = {
     ...shortcutsMessages.en,
     ...goalsMessages.en,
     ...gridMessages.en,
+    ...archiveMessages.en,
   },
   ar: {
     ...baseMessages.ar,
@@ -410,6 +412,7 @@ export const messages = {
     ...shortcutsMessages.ar,
     ...goalsMessages.ar,
     ...gridMessages.ar,
+    ...archiveMessages.ar,
   },
 } as const;
 
