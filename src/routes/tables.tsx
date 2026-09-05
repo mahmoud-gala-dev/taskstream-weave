@@ -2055,8 +2055,8 @@ function ItemCard({
         "rounded-md border bg-card p-2 shadow-sm transition-shadow",
         item.archivedAt && "opacity-60 saturate-50",
         isTask
-          ? "border-border border-s-4 hover:shadow-md"
-          : "border-primary/35 border-s-4 border-s-primary bg-accent/35 shadow-none",
+          ? "rounded-md border-border border-s-4 hover:shadow-md"
+          : "rounded-lg border-2 border-dashed border-primary/45 bg-primary/[0.06] shadow-none",
         isDragging && "opacity-40",
         isOver && "ring-2 ring-primary",
       )}
