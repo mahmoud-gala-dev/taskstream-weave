@@ -412,6 +412,7 @@ export const messages = {
     ...shortcutsMessages.ar,
     ...goalsMessages.ar,
     ...gridMessages.ar,
+    ...archiveMessages.ar,
   },
 } as const;
 
