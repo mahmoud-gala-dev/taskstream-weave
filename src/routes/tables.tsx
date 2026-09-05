@@ -2072,7 +2072,12 @@ function ItemCard({
           <GripVertical className="size-3.5" />
         </button>
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-start">
-          <span className="block text-sm leading-snug">
+          <span
+            className={cn(
+              "block text-sm leading-snug",
+              isTask ? "" : "font-semibold uppercase tracking-wide text-primary",
+            )}
+          >
             <span aria-hidden>{item.icon ?? (isTask ? "✓" : "◫")} </span>
             {item.title}
           </span>
