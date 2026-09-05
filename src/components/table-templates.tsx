@@ -65,9 +65,11 @@ export const TABLE_TEMPLATES: TableTemplate[] = [
 export function TableTemplates({
   onApply,
   disabled,
+  hideHeader,
 }: {
   onApply: (template: TableTemplate) => void;
   disabled?: boolean;
+  hideHeader?: boolean;
 }) {
   const t = useT();
   const templateLabels: Record<string, { name: string; description: string }> = {
@@ -77,12 +79,14 @@ export function TableTemplates({
     focus: { name: t("template.focus.name"), description: t("template.focus.description") },
   };
   return (
-    <section className="mt-6" aria-label={t("template.ariaLabel")}>
-      <h2 className="flex items-center gap-2 text-sm font-semibold">
-        <LayoutTemplate className="size-4" /> {t("template.heading")}
-        <span className="text-xs font-normal text-muted-foreground">{t("template.hint")}</span>
-      </h2>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+    <section className={hideHeader ? "" : "mt-6"} aria-label={t("template.ariaLabel")}>
+      {!hideHeader ? (
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <LayoutTemplate className="size-4" /> {t("template.heading")}
+          <span className="text-xs font-normal text-muted-foreground">{t("template.hint")}</span>
+        </h2>
+      ) : null}
+      <div className={`grid gap-2 sm:grid-cols-2 xl:grid-cols-4 ${hideHeader ? "" : "mt-2"}`}>
         {TABLE_TEMPLATES.map((template) => (
           <article
             key={template.id}

@@ -82,39 +82,52 @@ export async function uploadAttachment(
   file: Blob,
   options: { filename: string; kind: Attachment["kind"]; mimeType?: string },
 ): Promise<string> {
-  const { auth, storage } = await getFirebase();
-  const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
-
-  if (!auth.currentUser || auth.currentUser.uid !== userId) {
-    throw new Error("Your sign-in session is not ready. Sign in again before uploading.");
-  }
-
+  const isGuest = userId.startsWith("guest_") || userId.startsWith("local_");
   const contentType = options.mimeType ?? file.type ?? "application/octet-stream";
   const fileId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const storagePath = `users/${userId}/items/${item.type}/${item.id}/${fileId}-${options.filename}`;
 
   let downloadURL = "";
   let savedPath = storagePath;
-  try {
-    const objectRef = ref(storage, storagePath);
-    await uploadBytes(objectRef, file, { contentType });
-    downloadURL = await getDownloadURL(objectRef);
-  } catch (error) {
-    const code = storageErrorCode(error);
-    const recoverable =
-      code === "" ||
-      code === "storage/unknown" ||
-      code === "storage/unauthorized" ||
-      code === "storage/retry-limit-exceeded" ||
-      code === "storage/bucket-not-found" ||
-      code === "storage/project-not-found";
-    if (!recoverable) throw error;
+
+  if (isGuest) {
     if (file.size > INLINE_LIMIT) {
       await writeLocalBlob(fileId, file);
       savedPath = `${LOCAL_PREFIX}${fileId}`;
     } else {
       downloadURL = await blobToDataUrl(file);
       savedPath = "";
+    }
+  } else {
+    try {
+      const { auth, storage } = await getFirebase();
+      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+
+      if (!auth.currentUser || auth.currentUser.uid !== userId) {
+        throw new Error("Your sign-in session is not ready. Sign in again before uploading.");
+      }
+
+      const objectRef = ref(storage, storagePath);
+      await uploadBytes(objectRef, file, { contentType });
+      downloadURL = await getDownloadURL(objectRef);
+    } catch (error) {
+      const code = storageErrorCode(error);
+      const recoverable =
+        code === "" ||
+        code === "storage/unknown" ||
+        code === "storage/unauthorized" ||
+        code === "storage/retry-limit-exceeded" ||
+        code === "storage/bucket-not-found" ||
+        code === "storage/project-not-found" ||
+        error instanceof Error;
+      if (!recoverable) throw error;
+      if (file.size > INLINE_LIMIT) {
+        await writeLocalBlob(fileId, file);
+        savedPath = `${LOCAL_PREFIX}${fileId}`;
+      } else {
+        downloadURL = await blobToDataUrl(file);
+        savedPath = "";
+      }
     }
   }
 

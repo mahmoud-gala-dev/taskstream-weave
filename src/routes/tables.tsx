@@ -16,6 +16,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Archive,
   ArchiveRestore,
+  Bookmark,
   Clock3,
   Columns3,
   Filter,
@@ -37,7 +38,13 @@ import {
   StickyNote,
   Tag,
   ImagePlus,
+  Upload,
   Trash2,
+  ZoomIn,
+  LayoutTemplate,
+  Sparkles,
+  SlidersHorizontal,
+  Smile,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
@@ -63,6 +70,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -73,6 +81,7 @@ import { AiOptimizer } from "@/components/ai-optimizer";
 import { TableFocusTray } from "@/components/table-focus-tray";
 import { FocusTaskTable } from "@/components/focus-task-table";
 import { TABLE_TEMPLATES, TableTemplates, type TableTemplate } from "@/components/table-templates";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { COL, createRecord, deleteRecord, updateRecord } from "@/lib/db";
 import { trackEvent } from "@/lib/firebase";
 import {
@@ -95,6 +104,7 @@ import { readSnapshot } from "@/lib/table-snapshot";
 import type { ItemStatus, ItemType, Note, Placement, Priority, TableCell, WorkItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace-store";
+import { playDropSound } from "@/lib/sound";
 
 
 export const Route = createFileRoute("/tables")({
@@ -148,6 +158,21 @@ function TablesPage() {
   const [focusMode, setFocusMode] = useState(false);
   const [sectionOpenOverrides, setSectionOpenOverrides] = useState<Record<string, boolean>>({});
   const [showArchived, setShowArchived] = useState(false);
+  const [showFocusSessions, setShowFocusSessions] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const v = window.localStorage.getItem("work-os:show-focus-sessions");
+    return v !== null ? v === "true" : true;
+  });
+  const [showTemplates, setShowTemplates] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const v = window.localStorage.getItem("work-os:show-templates");
+    return v !== null ? v === "true" : true;
+  });
+  const [showAiOptimizer, setShowAiOptimizer] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const v = window.localStorage.getItem("work-os:show-ai-optimizer");
+    return v !== null ? v === "true" : true;
+  });
   const [filters, setFilters] = useState<QuickFilters>({
     status: "all",
     priority: "all",
@@ -169,6 +194,18 @@ function TablesPage() {
   useEffect(() => {
     window.localStorage.setItem("work-os:sections-open", String(sidebarOpen));
   }, [sidebarOpen]);
+
+  useEffect(() => {
+    window.localStorage.setItem("work-os:show-focus-sessions", String(showFocusSessions));
+  }, [showFocusSessions]);
+
+  useEffect(() => {
+    window.localStorage.setItem("work-os:show-templates", String(showTemplates));
+  }, [showTemplates]);
+
+  useEffect(() => {
+    window.localStorage.setItem("work-os:show-ai-optimizer", String(showAiOptimizer));
+  }, [showAiOptimizer]);
 
 
   /**
@@ -341,6 +378,39 @@ function TablesPage() {
     }, t("tables.cellStyleSaveFailed"));
   }
 
+  async function moveCellImage(
+    fromRowId: string,
+    fromColId: string,
+    toRowId: string,
+    toColId: string,
+    noteImage: string,
+  ) {
+    if (fromRowId === toRowId && fromColId === toColId) return;
+    await Promise.all([
+      setCellStyle(fromRowId, fromColId, { noteImage: null }),
+      setCellStyle(toRowId, toColId, { noteImage }),
+    ]);
+    playDropSound();
+  }
+
+  async function moveCellNote(
+    fromRowId: string,
+    fromColId: string,
+    toRowId: string,
+    toColId: string,
+    note: string,
+  ) {
+    if (fromRowId === toRowId && fromColId === toColId) return;
+    const targetCell = cellByKey.get(`${toRowId}:${toColId}`);
+    const existingNote = targetCell?.note?.trim();
+    const finalNote = existingNote ? `${existingNote}\n\n${note}` : note;
+    await Promise.all([
+      setCellStyle(fromRowId, fromColId, { note: null }),
+      setCellStyle(toRowId, toColId, { note: finalNote }),
+    ]);
+    playDropSound();
+  }
+
 
 
   async function guard(action: () => Promise<void>, failure: string) {
@@ -506,6 +576,7 @@ function TablesPage() {
 
     if (a.kind === "section" && o.kind === "section") {
       await guard(() => reorderTo(COL.sections, sections, a.id, o.id), t("tables.moveFailed"));
+      playDropSound();
       return;
     }
 
@@ -516,6 +587,7 @@ function TablesPage() {
           () => moveTableToSection(a.id, o.id, orderAtEnd(tables.filter((tb) => tb.sectionId === o.id))),
           t("tables.moveFailed"),
         );
+        playDropSound();
         toast.success(t("tables.tableMovedToSection"));
         return;
       }
@@ -535,17 +607,20 @@ function TablesPage() {
             t("tables.moveFailed"),
           );
         }
+        playDropSound();
         return;
       }
     }
 
     if (a.kind === "row" && o.kind === "row") {
       await guard(() => reorderTo(COL.rows, tableRows, a.id, o.id), t("tables.moveFailed"));
+      playDropSound();
       return;
     }
 
     if (a.kind === "column" && o.kind === "column") {
       await guard(() => reorderTo(COL.columns, tableColumns, a.id, o.id), t("tables.moveFailed"));
+      playDropSound();
       return;
     }
 
@@ -571,6 +646,7 @@ function TablesPage() {
             }),
           t("tables.moveFailed"),
         );
+        playDropSound();
         toast.success(t("tables.movedToAnotherTable"));
         return;
       }
@@ -592,6 +668,7 @@ function TablesPage() {
             }),
           t("tables.moveFailed"),
         );
+        playDropSound();
         void trackEvent("item_moved");
         return;
       }
@@ -626,8 +703,10 @@ function TablesPage() {
               }),
             t("tables.moveFailed"),
           );
-          void trackEvent("item_moved");
         }
+        playDropSound();
+        void trackEvent("item_moved");
+        return;
       }
     }
   }
@@ -807,6 +886,48 @@ function TablesPage() {
             >
               {t("grid.dueColors")}
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <SlidersHorizontal className="size-4" />
+                  <span>{t("tables.panels")}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuLabel>{t("tables.panels")}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setShowFocusSessions((v) => !v);
+                  }}
+                >
+                  <span className="w-4">{showFocusSessions ? "✓" : ""}</span>
+                  <Clock3 className="size-4 text-muted-foreground" />
+                  <span className="truncate">{t("tables.showFocusSessions")}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setShowTemplates((v) => !v);
+                  }}
+                >
+                  <span className="w-4">{showTemplates ? "✓" : ""}</span>
+                  <LayoutTemplate className="size-4 text-muted-foreground" />
+                  <span className="truncate">{t("tables.showTemplates")}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setShowAiOptimizer((v) => !v);
+                  }}
+                >
+                  <span className="w-4">{showAiOptimizer ? "✓" : ""}</span>
+                  <Sparkles className="size-4 text-muted-foreground" />
+                  <span className="truncate">{t("tables.showAiOptimizer")}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Quick filter bar: narrows the open table without leaving the page. */}
@@ -943,11 +1064,11 @@ function TablesPage() {
                   className={cn("grid gap-2", focusMode ? "w-full" : "min-w-fit")}
                   style={{
                     gridTemplateColumns: focusMode
-                      ? `8rem repeat(${Math.max(visibleColumns.length, 1)}, minmax(0, 1fr))`
-                      : `10rem repeat(${Math.max(visibleColumns.length, 1)}, minmax(15rem, 1fr))`,
+                      ? `minmax(8rem, max-content) repeat(${Math.max(visibleColumns.length, 1)}, minmax(0, 1fr))`
+                      : `minmax(11rem, max-content) repeat(${Math.max(visibleColumns.length, 1)}, minmax(15rem, max-content))`,
                   }}
                 >
-                  <div className="rounded-md bg-muted/40" />
+                  <div className="rounded-xl border border-dashed border-border/70 bg-card/30 flex items-center justify-center p-2 text-xs font-semibold text-muted-foreground/50 select-none shadow-xs" />
                   {visibleColumns.map((col) => (
                     <LineHeader
                       key={col.id}
@@ -956,6 +1077,7 @@ function TablesPage() {
                       name={col.name}
                       color={col.color}
                       icon={col.icon}
+                      subtitle={col.subtitle}
                       onStyle={(patch) => void updateRecord(COL.columns, col.id, patch as never)}
                       onRename={(name) => void updateRecord(COL.columns, col.id, { name } as never)}
                       onDelete={() => void deleteLineCascade("column", col.id, placements)}
@@ -970,6 +1092,7 @@ function TablesPage() {
                       name={row.name}
                       color={row.color}
                       icon={row.icon}
+                      subtitle={row.subtitle}
                       onStyle={(patch) => void updateRecord(COL.rows, row.id, patch as never)}
                       columns={visibleColumns}
                       onRename={(name) => void updateRecord(COL.rows, row.id, { name } as never)}
@@ -982,6 +1105,12 @@ function TablesPage() {
                           columnId={columnId}
                           cell={cellByKey.get(`${row.id}:${columnId}`) ?? null}
                           onStyle={(patch) => void setCellStyle(row.id, columnId, patch)}
+                          onMoveImage={(fromRowId, fromColId, img) =>
+                            void moveCellImage(fromRowId, fromColId, row.id, columnId, img)
+                          }
+                          onMoveNote={(fromRowId, fromColId, noteText) =>
+                            void moveCellNote(fromRowId, fromColId, row.id, columnId, noteText)
+                          }
                           placements={cellPlacements(row.id, columnId)}
                           itemById={itemById}
                           roundsByItem={roundsByItem}
@@ -1093,28 +1222,139 @@ function TablesPage() {
               </ContextMenuContent>
               </ContextMenu>
 
-              <div className="mt-6">
-                <h2 className="text-sm font-semibold">{t("tables.focusSessionsTitle")}</h2>
-                <p className="mb-2 mt-1 text-xs text-muted-foreground">
-                  {t("tables.focusSessionsDesc")}
-                </p>
-                <FocusTaskTable
-                  userId={userId}
-                  items={tableItems}
-                  sessions={sessions}
-                  onSelect={(id) => void navigate({ to: "/item/$itemId", params: { itemId: id } })}
-                />
+              {/* Focus sessions in this table */}
+              <div className="mt-6 rounded-xl border border-border bg-card/40 p-4 shadow-sm transition-all">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowFocusSessions((v) => !v)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setShowFocusSessions((v) => !v);
+                    }
+                  }}
+                  className="flex cursor-pointer items-center justify-between gap-2 select-none"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Clock3 className="size-4 shrink-0 text-primary" />
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold">{t("tables.focusSessionsTitle")}</h2>
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {t("tables.focusSessionsDesc")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      aria-label={showFocusSessions ? t("tables.collapsePanel") : t("tables.expandPanel")}
+                    >
+                      {showFocusSessions ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                    </Button>
+                  </div>
+                </div>
+                {showFocusSessions ? (
+                  <div className="mt-3">
+                    <FocusTaskTable
+                      userId={userId}
+                      items={tableItems}
+                      sessions={sessions}
+                      onSelect={(id) => void navigate({ to: "/item/$itemId", params: { itemId: id } })}
+                    />
+                  </div>
+                ) : null}
               </div>
 
-              <TableTemplates onApply={(template) => void applyTemplate(template)} disabled={!currentTableId} />
+              {/* Templates */}
+              <div className="mt-6 rounded-xl border border-border bg-card/40 p-4 shadow-sm transition-all">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowTemplates((v) => !v)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setShowTemplates((v) => !v);
+                    }
+                  }}
+                  className="flex cursor-pointer items-center justify-between gap-2 select-none"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <LayoutTemplate className="size-4 shrink-0 text-primary" />
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold">{t("template.heading")}</h2>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{t("template.hint")}</p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 shrink-0"
+                    aria-label={showTemplates ? t("tables.collapsePanel") : t("tables.expandPanel")}
+                  >
+                    {showTemplates ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                  </Button>
+                </div>
+                {showTemplates ? (
+                  <div className="mt-3">
+                    <TableTemplates
+                      onApply={(template) => void applyTemplate(template)}
+                      disabled={!currentTableId}
+                      hideHeader
+                    />
+                  </div>
+                ) : null}
+              </div>
 
-              <AiOptimizer
-                userId={userId}
-                tableId={table.id}
-                tableName={table.name}
-                rows={tableRows}
-                columns={tableColumns}
-              />
+              {/* AI Structure Assistant */}
+              <div className="mt-6 rounded-xl border border-border bg-card/40 p-4 shadow-sm transition-all">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowAiOptimizer((v) => !v)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setShowAiOptimizer((v) => !v);
+                    }
+                  }}
+                  className="flex cursor-pointer items-center justify-between gap-2 select-none"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles className="size-4 shrink-0 text-primary" />
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold">{t("optimizer.structureTitle")}</h2>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{t("optimizer.structureSubtitle")}</p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 shrink-0"
+                    aria-label={showAiOptimizer ? t("tables.collapsePanel") : t("tables.expandPanel")}
+                  >
+                    {showAiOptimizer ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                  </Button>
+                </div>
+                {showAiOptimizer ? (
+                  <div className="mt-3">
+                    <AiOptimizer
+                      userId={userId}
+                      tableId={table.id}
+                      tableName={table.name}
+                      rows={tableRows}
+                      columns={tableColumns}
+                      hideHeader
+                    />
+                  </div>
+                ) : null}
+              </div>
             </>
 
           )}
@@ -1414,29 +1654,179 @@ function TableTab({
   );
 }
 
-type StylePatch = { color?: string | null; icon?: string | null };
+type StylePatch = { color?: string | null; icon?: string | null; subtitle?: string | null };
 type CellPatch = StylePatch & { note?: string | null; noteImage?: string | null };
 
+/** Reads an image Blob/File and downscales/compresses it to keep within document limits. */
+export function fileToDataUrl(file: Blob, maxDim = 1200, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      if (!src) return reject(new Error("Failed to read image file."));
+      if (typeof Image === "undefined") return resolve(src);
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(src);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/webp", quality) || canvas.toDataURL("image/jpeg", quality) || src);
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Reads image from clipboard (supports screenshots / copied images). */
+export async function readImageFromClipboard(): Promise<string | null> {
+  if (typeof navigator === "undefined" || !navigator.clipboard) return null;
+  try {
+    if (navigator.clipboard.read) {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find((t) => t.startsWith("image/"));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          return await fileToDataUrl(blob);
+        }
+      }
+    }
+  } catch {
+    /* clipboard permissions or unsupported */
+  }
+  return null;
+}
+
 /**
- * Inline cell note: edits save as you type (debounced) and a focus-table
- * snapshot can be pasted straight into the note as an image.
+ * Extracts an image (as DataURL or URL) from a DragEvent dataTransfer.
+ * Supports:
+ * - Direct image file drops (from desktop / file explorer)
+ * - Dragging an image from another table cell (custom data type application/x-table-image)
+ * - Dragging an image from a web page (html img tag, uri-list, or plain text image url)
+ */
+export async function extractImageFromDataTransfer(dt: DataTransfer | null): Promise<string | null> {
+  if (!dt) return null;
+
+  // 1. Internal cell image drag (from another cell)
+  try {
+    const internal = dt.getData("application/x-table-image");
+    if (internal) return internal;
+  } catch {
+    /* ignore */
+  }
+
+  // 2. Direct file drop from file explorer / desktop
+  if (dt.files && dt.files.length > 0) {
+    const imageFile = Array.from(dt.files).find((f) => f.type.startsWith("image/"));
+    if (imageFile) {
+      return await fileToDataUrl(imageFile);
+    }
+  }
+
+  // 3. Items with files (some browsers prioritize items)
+  if (dt.items && dt.items.length > 0) {
+    for (let i = 0; i < dt.items.length; i++) {
+      const item = dt.items[i];
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          return await fileToDataUrl(file);
+        }
+      }
+    }
+  }
+
+  // 4. HTML img tag from dragged web content
+  try {
+    const html = dt.getData("text/html");
+    if (html) {
+      const match = /<img[^>]+src=["']([^"']+)["']/i.exec(html);
+      if (match?.[1]) {
+        return match[1];
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // 5. URI list (links to images dragged from browser)
+  try {
+    const uri = dt.getData("text/uri-list")?.split("\n")[0]?.trim();
+    if (uri && (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("data:image/"))) {
+      return uri;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // 6. Plain text if it's a data URL or direct image URL
+  try {
+    const text = dt.getData("text/plain")?.trim();
+    if (
+      text &&
+      (text.startsWith("data:image/") ||
+        ((text.startsWith("http://") || text.startsWith("https://")) &&
+          /\.(jpeg|jpg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(text)))
+    ) {
+      return text;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return null;
+}
+
+/**
+ * Inline cell note: edits save as you type (debounced) and an image
+ * can be pasted from clipboard, uploaded, or removed directly.
  */
 function CellNote({
+  rowId,
+  columnId,
   note,
   noteImage,
   editing,
   onEditingChange,
   onStyle,
+  onMoveImage,
+  onMoveNote,
 }: {
+  rowId?: string | undefined;
+  columnId?: string | undefined;
   note?: string | undefined;
   noteImage?: string | undefined;
   editing: boolean;
   onEditingChange: (next: boolean) => void;
   onStyle: (patch: CellPatch) => void;
+  onMoveImage?: ((fromRowId: string, fromColumnId: string, image: string) => void) | undefined;
+  onMoveNote?: ((fromRowId: string, fromColumnId: string, note: string) => void) | undefined;
 }) {
   const t = useT();
   const [draft, setDraft] = useState(note ?? "");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const dirty = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isNoteDragOver, setIsNoteDragOver] = useState(false);
+  const [noteDragType, setNoteDragType] = useState<"image" | "note">("note");
+  const noteDragCounter = useRef(0);
 
   useEffect(() => {
     if (!dirty.current) setDraft(note ?? "");
@@ -1451,29 +1841,302 @@ function CellNote({
     return () => window.clearTimeout(timeout);
   }, [draft, editing, onStyle]);
 
+  const handlePasteImage = async () => {
+    const clipboardImg = await readImageFromClipboard();
+    if (clipboardImg) {
+      onStyle({ noteImage: clipboardImg });
+      toast.success(t("tables.imageAdded"));
+      return;
+    }
+    const snapshot = readSnapshot();
+    if (snapshot) {
+      onStyle({ noteImage: snapshot });
+      toast.success(t("tables.snapshotAdded"));
+      return;
+    }
+    toast.info(t("tables.noClipboardImage"));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      onStyle({ noteImage: dataUrl });
+      toast.success(t("tables.imageAdded"));
+    } catch {
+      toast.error("Failed to load image");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleContainerPaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          e.stopPropagation();
+          void fileToDataUrl(file).then((dataUrl) => {
+            onStyle({ noteImage: dataUrl });
+            toast.success(t("tables.imageAdded"));
+          });
+          return;
+        }
+      }
+    }
+  };
+
+  const handleNoteDragEnter = (e: React.DragEvent) => {
+    const types = Array.from(e.dataTransfer?.types || []);
+    if (types.includes("application/x-table-image") || types.includes("Files")) {
+      setNoteDragType("image");
+    } else {
+      setNoteDragType("note");
+    }
+    e.preventDefault();
+    noteDragCounter.current += 1;
+    setIsNoteDragOver(true);
+  };
+
+  const handleNoteDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleNoteDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    noteDragCounter.current = Math.max(0, noteDragCounter.current - 1);
+    if (noteDragCounter.current === 0) {
+      setIsNoteDragOver(false);
+    }
+  };
+
+  const handleNoteDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    noteDragCounter.current = 0;
+    setIsNoteDragOver(false);
+
+    // 1. Internal Note Move
+    const noteSourceKey = e.dataTransfer.getData("application/x-table-note-source");
+    const internalNote = e.dataTransfer.getData("application/x-table-note");
+    const imageSourceKey = e.dataTransfer.getData("application/x-table-image-source");
+    const internalImage = e.dataTransfer.getData("application/x-table-image");
+
+    if (noteSourceKey && internalNote) {
+      try {
+        const { rowId: srcRowId, columnId: srcColId } = JSON.parse(noteSourceKey) as {
+          rowId: string;
+          columnId: string;
+        };
+        if (srcRowId === rowId && srcColId === columnId) {
+          return;
+        }
+        if (onMoveNote) {
+          onMoveNote(srcRowId, srcColId, internalNote);
+          setDraft((prev) => (prev.trim() ? `${prev.trim()}\n\n${internalNote}` : internalNote));
+          if (imageSourceKey && internalImage && onMoveImage) {
+            onMoveImage(srcRowId, srcColId, internalImage);
+          }
+          toast.success(t("tables.noteMoved"));
+          return;
+        }
+      } catch {
+        /* fallback below */
+      }
+    }
+
+    // 2. Internal Image Move
+    if (imageSourceKey && internalImage) {
+      try {
+        const { rowId: srcRowId, columnId: srcColId } = JSON.parse(imageSourceKey) as {
+          rowId: string;
+          columnId: string;
+        };
+        if (srcRowId === rowId && srcColId === columnId) {
+          return;
+        }
+        if (onMoveImage) {
+          onMoveImage(srcRowId, srcColId, internalImage);
+          toast.success(t("tables.imageMoved"));
+          return;
+        }
+      } catch {
+        /* fallback below */
+      }
+    }
+
+    // 3. External Image Drop
+    const dataUrl = await extractImageFromDataTransfer(e.dataTransfer);
+    if (dataUrl) {
+      onStyle({ noteImage: dataUrl });
+      playDropSound();
+      toast.success(t("tables.imageAdded"));
+      return;
+    }
+
+    // 4. External Text Drop
+    const plainText = e.dataTransfer.getData("text/plain");
+    if (plainText && plainText.trim()) {
+      const existing = draft?.trim() || note?.trim();
+      const finalNote = existing ? `${existing}\n\n${plainText.trim()}` : plainText.trim();
+      setDraft(finalNote);
+      onStyle({ note: finalNote });
+      playDropSound();
+      toast.success(t("tables.noteAdded"));
+    }
+  };
+
   if (!editing) {
     if (!note && !noteImage) return null;
     return (
-      <button
-        type="button"
-        onClick={() => onEditingChange(true)}
-        className="group flex w-full flex-col gap-1.5 rounded-lg border border-amber-500/25 border-s-4 border-s-amber-500/70 bg-amber-500/[0.08] p-2 text-start text-[11px] leading-relaxed text-foreground/80 shadow-sm transition hover:border-amber-500/45 hover:bg-amber-500/[0.14]"
-      >
-        {note ? (
-          <span className="flex items-start gap-1.5">
-            <StickyNote className="mt-px size-3 shrink-0 text-amber-600" aria-hidden />
-            <span className="line-clamp-3 whitespace-pre-wrap break-words">{note}</span>
-          </span>
-        ) : null}
-        {noteImage ? (
-          <img src={noteImage} alt={t("tables.noteSnapshotAlt")} className="max-h-24 w-full rounded-md border border-amber-500/25 object-contain" />
-        ) : null}
-      </button>
+      <div className="group/note relative w-full">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onEditingChange(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onEditingChange(true);
+            }
+          }}
+          className="group/card flex w-full flex-col gap-1.5 rounded-lg border border-amber-500/25 border-s-4 border-s-amber-500/70 bg-amber-500/[0.08] p-2 text-start text-[11px] leading-relaxed text-foreground/80 shadow-sm transition hover:border-amber-500/45 hover:bg-amber-500/[0.14] cursor-pointer"
+        >
+          {note ? (
+            <div
+              draggable
+              onDragStart={(e) => {
+                e.stopPropagation();
+                e.dataTransfer.setData("application/x-table-note", note);
+                if (rowId && columnId) {
+                  e.dataTransfer.setData(
+                    "application/x-table-note-source",
+                    JSON.stringify({ rowId, columnId }),
+                  );
+                }
+                e.dataTransfer.setData("text/plain", note);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              className="group/notedrag flex items-start gap-1.5 rounded p-1 -m-1 transition-all cursor-grab active:cursor-grabbing hover:bg-amber-500/15 hover:ring-1 hover:ring-amber-500/30 select-none"
+              title={`${t("tables.dragNoteToMove")} · ${t("tables.clickToEdit")}`}
+            >
+              <GripVertical className="mt-0.5 size-3.5 shrink-0 text-amber-600/60 group-hover/notedrag:text-amber-700 dark:group-hover/notedrag:text-amber-400 transition-colors" aria-hidden />
+              <StickyNote className="mt-px size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+              <span className="line-clamp-3 whitespace-pre-wrap break-words flex-1 text-foreground/90 font-normal">
+                {note}
+              </span>
+            </div>
+          ) : null}
+          {noteImage ? (
+            <div className="relative group/img mt-0.5 w-full overflow-hidden rounded-md border border-amber-500/25 bg-background/50">
+              <img
+                src={noteImage}
+                alt={t("tables.noteSnapshotAlt")}
+                draggable
+                onDragStart={(e) => {
+                  e.stopPropagation();
+                  e.dataTransfer.setData("application/x-table-image", noteImage);
+                  if (rowId && columnId) {
+                    e.dataTransfer.setData(
+                      "application/x-table-image-source",
+                      JSON.stringify({ rowId, columnId }),
+                    );
+                  }
+                  e.dataTransfer.setData("text/plain", noteImage);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                className="max-h-28 w-full object-contain cursor-grab active:cursor-grabbing transition hover:opacity-95"
+                title={`${t("tables.viewImage")} · ${t("tables.dragImageToMove")}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxOpen(true);
+                }}
+              />
+              <div className="absolute top-1 end-1 flex items-center gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  title={t("tables.viewImage")}
+                  aria-label={t("tables.viewImage")}
+                  className="rounded-full bg-background/80 p-1 text-foreground shadow-md transition hover:bg-background transform hover:scale-110 backdrop-blur-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxOpen(true);
+                  }}
+                >
+                  <ZoomIn className="size-3" />
+                </button>
+                <button
+                  type="button"
+                  title={t("tables.deleteCellImage")}
+                  aria-label={t("tables.deleteCellImage")}
+                  className="rounded-full bg-destructive p-1 text-destructive-foreground shadow-md transition hover:bg-destructive/90 transform hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStyle({ noteImage: null });
+                    toast.success(t("tables.imageDeleted"));
+                  }}
+                >
+                  <Trash2 className="size-3" />
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+        <ImageLightbox
+          src={noteImage ?? null}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          onDelete={() => {
+            onStyle({ noteImage: null });
+            toast.success(t("tables.imageDeleted"));
+          }}
+          title={note || t("tables.cellNoteLabel")}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="rounded-md border border-border bg-background p-1.5">
+    <div
+      className={cn(
+        "relative rounded-md border border-border bg-background p-1.5 transition-all",
+        isNoteDragOver && "border-amber-500 ring-2 ring-amber-500/60 bg-amber-500/10",
+      )}
+      onPaste={handleContainerPaste}
+      onDragEnter={handleNoteDragEnter}
+      onDragOver={handleNoteDragOver}
+      onDragLeave={handleNoteDragLeave}
+      onDrop={handleNoteDrop}
+    >
+      {isNoteDragOver && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded bg-amber-500/20 backdrop-blur-[1px] border border-dashed border-amber-500 text-amber-600 dark:text-amber-400 animate-in fade-in duration-150">
+          {noteDragType === "image" ? (
+            <>
+              <ImagePlus className="size-5 me-1.5 animate-bounce text-primary" />
+              <span className="text-xs font-semibold">{t("tables.dropImageHere")}</span>
+            </>
+          ) : (
+            <>
+              <StickyNote className="size-5 me-1.5 animate-bounce text-amber-600 dark:text-amber-400" />
+              <span className="text-xs font-semibold">{t("tables.dropNoteHere")}</span>
+            </>
+          )}
+        </div>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
       <Textarea
         autoFocus
         value={draft}
@@ -1492,36 +2155,85 @@ function CellNote({
         aria-label={t("tables.cellNoteLabel")}
       />
       {noteImage ? (
-        <img src={noteImage} alt={t("tables.noteSnapshotAlt")} className="mt-1.5 max-h-40 w-full rounded border border-border object-contain" />
+        <div className="relative group/editimg mt-1.5 overflow-hidden rounded border border-border bg-muted/20">
+          <img
+            src={noteImage}
+            alt={t("tables.noteSnapshotAlt")}
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation();
+              e.dataTransfer.setData("application/x-table-image", noteImage);
+              if (rowId && columnId) {
+                e.dataTransfer.setData(
+                  "application/x-table-image-source",
+                  JSON.stringify({ rowId, columnId }),
+                );
+              }
+              e.dataTransfer.setData("text/plain", noteImage);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            className="max-h-44 w-full object-contain cursor-grab active:cursor-grabbing"
+            title={`${t("tables.viewImage")} · ${t("tables.dragImageToMove")}`}
+            onClick={() => setLightboxOpen(true)}
+          />
+          <div className="absolute top-1.5 end-1.5 flex items-center gap-1">
+            <button
+              type="button"
+              className="rounded bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow backdrop-blur transition hover:bg-background flex items-center gap-1"
+              onClick={() => setLightboxOpen(true)}
+            >
+              <ZoomIn className="size-3" />
+              <span>{t("tables.viewImage")}</span>
+            </button>
+            <button
+              type="button"
+              className="rounded bg-destructive px-2 py-1 text-[11px] font-medium text-destructive-foreground shadow transition hover:bg-destructive/90 flex items-center gap-1"
+              onClick={() => {
+                onStyle({ noteImage: null });
+                toast.success(t("tables.imageDeleted"));
+              }}
+            >
+              <Trash2 className="size-3" />
+              <span>{t("tables.deleteCellImage")}</span>
+            </button>
+          </div>
+        </div>
       ) : null}
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
         <Button
+          type="button"
           size="sm"
           variant="outline"
           className="h-7 text-[11px]"
-          onClick={() => {
-            const snapshot = readSnapshot();
-            if (!snapshot) {
-              toast.info(t("tables.takeSnapshotFirst"));
-              return;
-            }
-            onStyle({ noteImage: snapshot });
-            toast.success(t("tables.snapshotAdded"));
-          }}
+          onClick={handlePasteImage}
         >
-          <ImagePlus className="size-3.5" /> {t("tables.pasteTableImage")}
+          <ImagePlus className="size-3.5" /> {t("tables.pasteClipboardImage")}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 text-[11px]"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="size-3.5" /> {t("tables.uploadImage")}
         </Button>
         {noteImage ? (
           <Button
+            type="button"
             size="sm"
             variant="ghost"
-            className="h-7 text-[11px]"
-            onClick={() => onStyle({ noteImage: null })}
+            className="h-7 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => {
+              onStyle({ noteImage: null });
+              toast.success(t("tables.imageDeleted"));
+            }}
           >
-            <Trash2 className="size-3.5" /> {t("tables.removeImage")}
+            <Trash2 className="size-3.5" /> {t("tables.deleteCellImage")}
           </Button>
         ) : null}
         <Button
+          type="button"
           size="sm"
           variant="ghost"
           className="ms-auto h-7 text-[11px]"
@@ -1530,6 +2242,16 @@ function CellNote({
           {t("tables.done")}
         </Button>
       </div>
+      <ImageLightbox
+        src={noteImage ?? null}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onDelete={() => {
+          onStyle({ noteImage: null });
+          toast.success(t("tables.imageDeleted"));
+        }}
+        title={note || t("tables.cellNoteLabel")}
+      />
     </div>
   );
 }
@@ -1541,6 +2263,7 @@ function LineHeader({
   name,
   color,
   icon,
+  subtitle,
   onRename,
   onDelete,
   onStyle,
@@ -1551,6 +2274,7 @@ function LineHeader({
   name: string;
   color?: string | undefined;
   icon?: string | undefined;
+  subtitle?: string | undefined;
   onRename: (name: string) => void;
   onDelete: () => void;
   onStyle?: ((patch: StylePatch) => void) | undefined;
@@ -1570,96 +2294,272 @@ function LineHeader({
     }).then((ok) => ok && onDelete());
   }
 
-  const header = (
+  function promptSubtitle() {
+    if (!onStyle) return;
+    const next = window.prompt(t("tables.subtitlePrompt", { kind: kindLabel }), subtitle ?? "");
+    if (next !== null) {
+      onStyle({ subtitle: next.trim() ? next.trim() : null });
+    }
+  }
+
+  const isCol = kind === "column";
+
+  const menuButton = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 shrink-0 opacity-40 hover:opacity-100 group-hover/line:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+          aria-label={t("tables.actionsFor", { name })}
+        >
+          <MoreHorizontal className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" side="right" className="w-56">
+        <DropdownMenuItem
+          onSelect={() => {
+            const next = window.prompt(t("tables.lineNamePrompt", { kind: kindLabel }), name);
+            if (next) onRename(next);
+          }}
+        >
+          <Edit3 className="size-4" />
+          {t("tables.rename")}
+        </DropdownMenuItem>
+        {onStyle ? (
+          <DropdownMenuItem onSelect={promptSubtitle}>
+            <Bookmark className="size-4" />
+            {subtitle ? t("tables.editSubtitle") : t("tables.addSubtitle")}
+          </DropdownMenuItem>
+        ) : null}
+        {onStyle && subtitle ? (
+          <DropdownMenuItem
+            className="text-xs text-muted-foreground"
+            onSelect={() => onStyle({ subtitle: null })}
+          >
+            {t("tables.clearSubtitle")}
+          </DropdownMenuItem>
+        ) : null}
+        {onStyle ? (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Smile className="size-4" />
+              {t("tables.icon")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="grid max-h-72 grid-cols-6 gap-0.5 overflow-y-auto p-1">
+              {ICONS.map((i) => (
+                <DropdownMenuItem
+                  key={i}
+                  onSelect={() => onStyle({ icon: i })}
+                  className="flex size-9 items-center justify-center text-xl p-0 cursor-pointer hover:bg-muted"
+                >
+                  {i}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator className="col-span-6 my-1" />
+              <DropdownMenuItem
+                className="col-span-6 text-xs text-destructive"
+                onSelect={() => onStyle({ icon: null })}
+              >
+                {t("tables.clearIcon")}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ) : null}
+        {onStyle ? (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Tag className="size-4" />
+              {t("tables.color")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {PALETTE.map((c) => (
+                <DropdownMenuItem key={c.value} onSelect={() => onStyle({ color: c.value })}>
+                  <span
+                    className="size-3 rounded-full"
+                    style={{ backgroundColor: c.value }}
+                    aria-hidden
+                  />
+                  {c.name}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => onStyle({ color: null, icon: null, subtitle: null })}>
+                {t("tables.clearStyle")}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-destructive" onSelect={confirmDelete}>
+          <Trash2 className="size-4" />
+          {t("tables.deleteLineMenu", { kind: kindLabel })}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const iconTrigger = onStyle ? (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "group/icon relative flex shrink-0 items-center justify-center select-none transition-all",
+            "focus:outline-none focus:ring-1 focus:ring-ring active:scale-95",
+            icon
+              ? "text-2xl sm:text-3xl leading-none hover:scale-110"
+              : "size-6 rounded-md border border-dashed border-border/70 text-muted-foreground/30 opacity-0 group-hover/line:opacity-100 hover:!opacity-100 hover:border-primary hover:text-primary transition-all",
+          )}
+          title={icon ? t("tables.icon") : t("tables.icon")}
+          aria-label={t("tables.icon")}
+        >
+          {icon ? (
+            <span className="leading-none transition-transform group-hover/icon:scale-110">
+              {icon}
+            </span>
+          ) : (
+            <Smile className="size-3.5" />
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56 p-1.5">
+        <DropdownMenuLabel className="text-xs font-semibold">{t("tables.icon")}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <div className="grid max-h-60 grid-cols-6 gap-1 overflow-y-auto p-1">
+          {ICONS.map((i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onStyle({ icon: i })}
+              className="flex size-8 items-center justify-center rounded-md text-xl hover:bg-muted transition"
+            >
+              {i}
+            </button>
+          ))}
+        </div>
+        {icon ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-xs text-destructive"
+              onSelect={() => onStyle({ icon: null })}
+            >
+              {t("tables.clearIcon")}
+            </DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : icon ? (
+    <span className="shrink-0 text-2xl sm:text-3xl leading-none select-none" aria-hidden>
+      {icon}
+    </span>
+  ) : null;
+
+  const subtitleBadge = subtitle ? (
+    <div className="mt-0.5 flex items-center">
+      <span
+        onClick={(e) => {
+          e.stopPropagation();
+          promptSubtitle();
+        }}
+        className="inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium leading-tight border border-primary/25 bg-primary/[0.08] text-primary/95 break-words cursor-pointer hover:bg-primary/[0.16] hover:border-primary/40 transition shadow-2xs select-none"
+        style={{
+          borderColor: color ? `${color}55` : undefined,
+          backgroundColor: color ? `${color}18` : undefined,
+          color: color ?? undefined,
+        }}
+        title={t("tables.editSubtitle")}
+      >
+        {subtitle}
+      </span>
+    </div>
+  ) : null;
+
+  const header = isCol ? (
+    // COLUMN HEADER: Sleek top lane tab, auto-expanding to fit text, bottom accent line
     <div
       ref={setNodeRef}
       style={{
         transform: CSS.Translate.toString(transform),
-        backgroundColor: tint(color, 0.18),
-        borderColor: color ?? undefined,
+        backgroundColor: tint(color, 0.12),
+        borderBottomColor: color ?? "var(--border)",
       }}
       className={cn(
-        "flex min-w-0 items-start gap-1 rounded-md border border-border bg-card/70 px-2 py-2 shadow-sm",
-        kind === "column" && "font-semibold",
+        "group/line flex items-center gap-2 rounded-xl border border-border/70 border-b-2 bg-card/65 px-3 py-2.5 shadow-xs transition-all",
+        "hover:bg-card/90 hover:shadow-sm hover:border-border",
         isDragging && "opacity-50",
         isOver && "ring-2 ring-primary",
       )}
     >
       <button
         type="button"
-        className="mt-0.5 shrink-0 cursor-grab text-muted-foreground"
+        className="shrink-0 cursor-grab text-muted-foreground/30 hover:text-muted-foreground transition-colors"
         aria-label={t("tables.dragLine", { name })}
         {...attributes}
         {...listeners}
       >
         <GripVertical className="size-3.5" />
       </button>
-      {icon ? (
-        <span className="mt-0.5 shrink-0" aria-hidden>
-          {icon}
-        </span>
-      ) : null}
-      <InlineName
-        key={id}
-        value={name}
-        onCommit={onRename}
-        multiline
-        className="text-sm font-medium"
-        ariaLabel={t("tables.lineNameLabel", { kind: kindLabel })}
-      />
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 shrink-0"
-            aria-label={t("tables.actionsFor", { name })}
-          >
-            <MoreHorizontal className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" side="right" className="w-52">
-          <DropdownMenuItem
-            onSelect={() => {
-              const next = window.prompt(t("tables.lineNamePrompt", { kind: kindLabel }), name);
-              if (next) onRename(next);
-            }}
-          >
-            <Edit3 className="size-4" />
-            {t("tables.rename")}
-          </DropdownMenuItem>
-          {onStyle ? (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Tag className="size-4" />
-                {t("tables.color")}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {PALETTE.map((c) => (
-                  <DropdownMenuItem key={c.value} onSelect={() => onStyle({ color: c.value })}>
-                    <span
-                      className="size-3 rounded-full"
-                      style={{ backgroundColor: c.value }}
-                      aria-hidden
-                    />
-                    {c.name}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => onStyle({ color: null, icon: null })}>
-                  {t("tables.clearStyle")}
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          ) : null}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive" onSelect={confirmDelete}>
-            <Trash2 className="size-4" />
-            {t("tables.deleteLineMenu", { kind: kindLabel })}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {iconTrigger}
+
+      <div className="flex-1 min-w-0">
+        <InlineName
+          key={id}
+          value={name}
+          onCommit={onRename}
+          multiline
+          className="text-sm font-bold tracking-tight text-foreground block leading-snug break-words"
+          ariaLabel={t("tables.lineNameLabel", { kind: kindLabel })}
+        />
+        {subtitleBadge}
+      </div>
+
+      {menuButton}
+    </div>
+  ) : (
+    // ROW HEADER: Swimlane anchor card, flexible height and auto-expanding width, vertical colored start border
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        backgroundColor: tint(color, 0.12),
+        borderInlineStartColor: color ?? "var(--primary)",
+      }}
+      className={cn(
+        "group/line flex h-full min-h-14 items-center gap-2.5 rounded-xl border border-border/70 border-s-4 bg-card/55 px-3 py-2.5 shadow-xs transition-all",
+        "hover:bg-card/85 hover:shadow-sm hover:border-border",
+        isDragging && "opacity-50",
+        isOver && "ring-2 ring-primary",
+      )}
+    >
+      <button
+        type="button"
+        className="shrink-0 cursor-grab text-muted-foreground/30 hover:text-muted-foreground transition-colors"
+        aria-label={t("tables.dragLine", { name })}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="size-3.5" />
+      </button>
+
+      {iconTrigger}
+
+      <div className="flex-1 min-w-0">
+        <InlineName
+          key={id}
+          value={name}
+          onCommit={onRename}
+          multiline
+          className="text-sm font-semibold text-foreground/95 block leading-snug break-words"
+          ariaLabel={t("tables.lineNameLabel", { kind: kindLabel })}
+        />
+        {subtitleBadge}
+      </div>
+
+      {menuButton}
     </div>
   );
 
@@ -1677,8 +2577,42 @@ function LineHeader({
         >
           {t("tables.rename")}
         </ContextMenuItem>
+        {onStyle ? (
+          <ContextMenuItem onClick={promptSubtitle}>
+            <Bookmark className="size-4" />
+            {subtitle ? t("tables.editSubtitle") : t("tables.addSubtitle")}
+          </ContextMenuItem>
+        ) : null}
+        {onStyle && subtitle ? (
+          <ContextMenuItem
+            className="text-xs text-muted-foreground"
+            onClick={() => onStyle({ subtitle: null })}
+          >
+            {t("tables.clearSubtitle")}
+          </ContextMenuItem>
+        ) : null}
         {onAddAfter ? (
           <ContextMenuItem onClick={onAddAfter}>{t("tables.addAnotherLine", { kind: kindLabel })}</ContextMenuItem>
+        ) : null}
+        {onStyle ? (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>{t("tables.icon")}</ContextMenuSubTrigger>
+            <ContextMenuSubContent className="grid max-h-72 grid-cols-6 gap-0.5 overflow-y-auto">
+              {ICONS.map((i) => (
+                <ContextMenuItem
+                  key={i}
+                  onClick={() => onStyle({ icon: i })}
+                  className="flex size-9 items-center justify-center text-xl p-0 cursor-pointer hover:bg-muted"
+                >
+                  {i}
+                </ContextMenuItem>
+              ))}
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => onStyle({ color: null, icon: null, subtitle: null })}>
+                {t("tables.clearIcon")}
+              </ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
         ) : null}
         {onStyle ? (
           <ContextMenuSub>
@@ -1695,7 +2629,7 @@ function LineHeader({
                 </ContextMenuItem>
               ))}
               <ContextMenuSeparator />
-              <ContextMenuItem onClick={() => onStyle({ color: null, icon: null })}>
+              <ContextMenuItem onClick={() => onStyle({ color: null, icon: null, subtitle: null })}>
                 {t("tables.clearStyle")}
               </ContextMenuItem>
             </ContextMenuSubContent>
@@ -1715,6 +2649,7 @@ function RowLine({
   name,
   color,
   icon,
+  subtitle,
   columns,
   onRename,
   onDelete,
@@ -1726,6 +2661,7 @@ function RowLine({
   name: string;
   color?: string | undefined;
   icon?: string | undefined;
+  subtitle?: string | undefined;
   columns: { id: string }[];
   onRename: (name: string) => void;
   onDelete: () => void;
@@ -1741,6 +2677,7 @@ function RowLine({
         name={name}
         color={color}
         icon={icon}
+        subtitle={subtitle}
         onRename={onRename}
         onDelete={onDelete}
         onStyle={onStyle}
@@ -1782,12 +2719,16 @@ function Cell({
   onFocusItem,
   onCopyToTable,
   otherTables,
+  onMoveImage,
+  onMoveNote,
 }: {
   tableId: string;
   rowId: string;
   columnId: string;
   cell: TableCell | null;
   onStyle: (patch: CellPatch) => void;
+  onMoveImage?: ((fromRowId: string, fromColumnId: string, image: string) => void) | undefined;
+  onMoveNote?: ((fromRowId: string, fromColumnId: string, note: string) => void) | undefined;
   placements: Placement[];
   itemById: Map<string, WorkItem>;
   roundsByItem: Map<string, number>;
@@ -1812,6 +2753,10 @@ function Cell({
   const [editingNote, setEditingNote] = useState(false);
   const [adding, setAdding] = useState<ItemType | null>(null);
   const [draft, setDraft] = useState("");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const cellFileInputRef = useRef<HTMLInputElement>(null);
+  const [cellDragType, setCellDragType] = useState<"image" | "note" | null>(null);
+  const cellDragCounter = useRef(0);
 
   /** Tasks in this cell plus the Pomodoro rounds still owed on them. */
   const cellCount = useMemo(() => {
@@ -1839,18 +2784,225 @@ function Cell({
     setAdding(null);
   }
 
+  const handleCellPaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          e.stopPropagation();
+          void fileToDataUrl(file).then((dataUrl) => {
+            onStyle({ noteImage: dataUrl });
+            toast.success(t("tables.imageAdded"));
+          });
+          return;
+        }
+      }
+    }
+  };
+
+  const handleCellDragEnter = (e: React.DragEvent) => {
+    const types = Array.from(e.dataTransfer?.types || []);
+    if (types.includes("application/x-table-note")) {
+      e.preventDefault();
+      cellDragCounter.current += 1;
+      setCellDragType("note");
+      return;
+    }
+    const isImageTransfer = types.some(
+      (type) =>
+        type === "Files" ||
+        type === "application/x-table-image" ||
+        type === "text/uri-list",
+    );
+    if (isImageTransfer) {
+      e.preventDefault();
+      cellDragCounter.current += 1;
+      setCellDragType("image");
+      return;
+    }
+    if (types.includes("text/plain")) {
+      e.preventDefault();
+      cellDragCounter.current += 1;
+      setCellDragType("note");
+      return;
+    }
+  };
+
+  const handleCellDragOver = (e: React.DragEvent) => {
+    if (cellDragType) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "move";
+    }
+  };
+
+  const handleCellDragLeave = (e: React.DragEvent) => {
+    if (cellDragType) {
+      e.preventDefault();
+      cellDragCounter.current = Math.max(0, cellDragCounter.current - 1);
+      if (cellDragCounter.current === 0) {
+        setCellDragType(null);
+      }
+    }
+  };
+
+  const handleCellDrop = async (e: React.DragEvent) => {
+    cellDragCounter.current = 0;
+    setCellDragType(null);
+
+    // 1. Internal Note Move
+    const noteSourceKey = e.dataTransfer.getData("application/x-table-note-source");
+    const internalNote = e.dataTransfer.getData("application/x-table-note");
+    const imageSourceKey = e.dataTransfer.getData("application/x-table-image-source");
+    const internalImage = e.dataTransfer.getData("application/x-table-image");
+
+    if (noteSourceKey && internalNote) {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const { rowId: srcRowId, columnId: srcColId } = JSON.parse(noteSourceKey) as {
+          rowId: string;
+          columnId: string;
+        };
+        if (srcRowId === rowId && srcColId === columnId) {
+          return;
+        }
+        if (onMoveNote) {
+          onMoveNote(srcRowId, srcColId, internalNote);
+          if (imageSourceKey && internalImage && onMoveImage) {
+            onMoveImage(srcRowId, srcColId, internalImage);
+          }
+          toast.success(t("tables.noteMoved"));
+          return;
+        }
+      } catch {
+        /* fallback below */
+      }
+    }
+
+    // 2. Internal Image Move
+    if (imageSourceKey && internalImage) {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const { rowId: srcRowId, columnId: srcColId } = JSON.parse(imageSourceKey) as {
+          rowId: string;
+          columnId: string;
+        };
+        if (srcRowId === rowId && srcColId === columnId) {
+          return;
+        }
+        if (onMoveImage) {
+          onMoveImage(srcRowId, srcColId, internalImage);
+          toast.success(t("tables.imageMoved"));
+          return;
+        }
+      } catch {
+        /* fallback below */
+      }
+    }
+
+    // 3. External Image Drop
+    const imgData = await extractImageFromDataTransfer(e.dataTransfer);
+    if (imgData) {
+      e.preventDefault();
+      e.stopPropagation();
+      onStyle({ noteImage: imgData });
+      playDropSound();
+      toast.success(t("tables.imageAdded"));
+      return;
+    }
+
+    // 4. External Text Drop
+    const plainText = e.dataTransfer.getData("text/plain");
+    if (plainText && plainText.trim()) {
+      e.preventDefault();
+      e.stopPropagation();
+      const existingNote = cell?.note?.trim();
+      const finalNote = existingNote ? `${existingNote}\n\n${plainText.trim()}` : plainText.trim();
+      onStyle({ note: finalNote });
+      playDropSound();
+      toast.success(t("tables.noteAdded"));
+      return;
+    }
+  };
+
+  const handleMenuPasteImage = async () => {
+    const clipboardImg = await readImageFromClipboard();
+    if (clipboardImg) {
+      onStyle({ noteImage: clipboardImg });
+      toast.success(t("tables.imageAdded"));
+      return;
+    }
+    const snapshot = readSnapshot();
+    if (snapshot) {
+      onStyle({ noteImage: snapshot });
+      toast.success(t("tables.snapshotAdded"));
+      return;
+    }
+    toast.info(t("tables.noClipboardImage"));
+  };
+
+  const handleCellFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      onStyle({ noteImage: dataUrl });
+      toast.success(t("tables.imageAdded"));
+    } catch {
+      toast.error("Failed to load image");
+    } finally {
+      if (cellFileInputRef.current) cellFileInputRef.current.value = "";
+    }
+  };
+
   const body = (
     <div
       ref={setNodeRef}
+      onPaste={handleCellPaste}
+      onDragEnter={handleCellDragEnter}
+      onDragOver={handleCellDragOver}
+      onDragLeave={handleCellDragLeave}
+      onDrop={handleCellDrop}
       style={{
         backgroundColor: tint(cell?.color, 0.1),
         borderColor: cell?.color ?? undefined,
       }}
       className={cn(
-        "flex min-h-28 flex-col gap-2 rounded-md border border-dashed border-border bg-card/30 p-2 transition-colors",
+        "relative flex min-h-28 flex-col gap-2 rounded-md border border-dashed border-border bg-card/30 p-2 transition-all",
         isOver && "border-primary bg-primary/10",
+        cellDragType === "image" && "border-primary ring-2 ring-primary/60 bg-primary/15 shadow-md scale-[1.01]",
+        cellDragType === "note" && "border-amber-500 ring-2 ring-amber-500/60 bg-amber-500/15 shadow-md scale-[1.01]",
       )}
     >
+      {cellDragType === "image" && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center rounded-md bg-primary/20 backdrop-blur-[1px] border-2 border-dashed border-primary text-primary animate-in fade-in zoom-in-95 duration-150">
+          <ImagePlus className="size-8 mb-1.5 animate-bounce text-primary" />
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-background/90 shadow-sm text-foreground border border-primary/30">
+            {t("tables.dropImageHere")}
+          </span>
+        </div>
+      )}
+      {cellDragType === "note" && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center rounded-md bg-amber-500/20 backdrop-blur-[1px] border-2 border-dashed border-amber-500 text-amber-600 dark:text-amber-400 animate-in fade-in zoom-in-95 duration-150">
+          <StickyNote className="size-8 mb-1.5 animate-bounce text-amber-600 dark:text-amber-400" />
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-background/90 shadow-sm text-foreground border border-amber-500/30">
+            {t("tables.dropNoteHere")}
+          </span>
+        </div>
+      )}
+      <input
+        ref={cellFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleCellFileUpload}
+      />
       {cell?.icon ? (
         <p className="flex items-center gap-1 text-2xl leading-none">
           <span aria-hidden>{cell.icon}</span>
@@ -1864,11 +3016,15 @@ function Cell({
       ) : null}
 
       <CellNote
+        rowId={rowId}
+        columnId={columnId}
         note={cell?.note}
         noteImage={cell?.noteImage}
         editing={editingNote}
         onEditingChange={setEditingNote}
         onStyle={onStyle}
+        onMoveImage={onMoveImage}
+        onMoveNote={onMoveNote}
       />
 
       {placements.map((p) => {
@@ -1974,24 +3130,34 @@ function Cell({
             ))}
           </ContextMenuSubContent>
         </ContextMenuSub>
+        <ContextMenuSeparator />
         <ContextMenuItem onClick={() => setEditingNote(true)}>
           <StickyNote /> {cell?.note || cell?.noteImage ? t("tables.editCellNote") : t("tables.addCellNote")}
         </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => {
-            const snapshot = readSnapshot();
-            if (!snapshot) {
-              toast.info(t("tables.takeSnapshotFirst"));
-              return;
-            }
-            onStyle({ noteImage: snapshot });
-            setEditingNote(true);
-          }}
-        >
-          <ImagePlus /> {t("tables.pasteFocusImage")}
+        <ContextMenuItem onClick={handleMenuPasteImage}>
+          <ImagePlus /> {t("tables.pasteClipboardImage")}
         </ContextMenuItem>
-        {cell?.note || cell?.noteImage ? (
-          <ContextMenuItem onClick={() => onStyle({ note: null, noteImage: null })}>
+        <ContextMenuItem onClick={() => cellFileInputRef.current?.click()}>
+          <Upload /> {t("tables.uploadImage")}
+        </ContextMenuItem>
+        {cell?.noteImage ? (
+          <ContextMenuItem onClick={() => setLightboxOpen(true)}>
+            <ZoomIn /> {t("tables.viewImage")}
+          </ContextMenuItem>
+        ) : null}
+        {cell?.noteImage ? (
+          <ContextMenuItem
+            className="text-destructive"
+            onClick={() => {
+              onStyle({ noteImage: null });
+              toast.success(t("tables.imageDeleted"));
+            }}
+          >
+            <Trash2 /> {t("tables.deleteCellImage")}
+          </ContextMenuItem>
+        ) : null}
+        {cell?.note ? (
+          <ContextMenuItem onClick={() => onStyle({ note: null })}>
             <Trash2 /> {t("tables.removeNote")}
           </ContextMenuItem>
         ) : null}
@@ -2000,6 +3166,18 @@ function Cell({
           {t("tables.clearCellStyle")}
         </ContextMenuItem>
       </ContextMenuContent>
+      {cell?.noteImage ? (
+        <ImageLightbox
+          src={cell.noteImage}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          onDelete={() => {
+            onStyle({ noteImage: null });
+            toast.success(t("tables.imageDeleted"));
+          }}
+          title={cell.note || t("tables.cellNoteLabel")}
+        />
+      ) : null}
     </ContextMenu>
   );
 }

@@ -43,6 +43,7 @@ import type {
 } from "@/lib/types";
 import { useWorkspace } from "@/lib/workspace-store";
 import { useT, type MessageKey } from "@/lib/i18n";
+import { playDropSound } from "@/lib/sound";
 
 export const Route = createFileRoute("/item/$itemId")({
   head: () => ({
@@ -155,6 +156,7 @@ function ItemWorkspace() {
     if (from < 0 || to < 0) return;
     const without = subtasks.filter((s) => s.id !== activeId);
     void updateRecord<Subtask>(COL.subtasks, activeId, { sortOrder: orderForIndex(without, to) });
+    playDropSound();
   }
 
   const itemSessions = sessions

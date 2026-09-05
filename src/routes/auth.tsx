@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Sparkles, UserCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/auth")({
 type Mode = "signin" | "signup" | "reset";
 
 function AuthPage() {
-  const { user, signIn, signUp, resetPassword, error } = useAuth();
+  const { user, signIn, signUp, signInAsGuest, resetPassword, error } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -62,6 +63,19 @@ function AuthPage() {
     }
   }
 
+  async function handleGuestSignIn() {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await signInAsGuest({ seedData: true });
+      void navigate({ to: "/" });
+    } catch {
+      /* error handled */
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
       <AuthBackdrop />
@@ -71,68 +85,101 @@ function AuthPage() {
         </section>
 
         <div className="w-full rounded-2xl border border-border/70 bg-card/80 p-6 shadow-xl backdrop-blur-md sm:p-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t("auth.kicker")}</p>
-        <h1 className="mt-1 text-2xl font-semibold">{t("auth.title")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t("auth.subtitle")}
-        </p>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t("auth.kicker")}</p>
+          <h1 className="mt-1 text-2xl font-semibold">{t("auth.title")}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t("auth.subtitle")}
+          </p>
 
-
-        <form onSubmit={submit} className="mt-8 space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="email">{t("auth.email")}</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+          {/* Guest Mode Quick Access Card */}
+          <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 transition-colors hover:border-primary/40">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Sparkles className="size-4 text-primary animate-pulse" />
+                  {t("auth.guestMode")}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t("auth.guestSubtitle")}
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-3 w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-medium text-sm gap-2"
+              disabled={busy}
+              onClick={handleGuestSignIn}
+            >
+              <UserCheck className="size-4" />
+              {t("auth.continueAsGuest")}
+            </Button>
           </div>
-          {mode !== "reset" ? (
+
+          <div className="relative my-6 text-center text-xs text-muted-foreground">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-border" />
+            </div>
+            <span className="relative bg-card/80 px-2 uppercase tracking-wider backdrop-blur-md">
+              {t("auth.orDivider")}
+            </span>
+          </div>
+
+          <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="password">{t("auth.password")}</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
-                id="password"
-                type="password"
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                id="email"
+                type="email"
+                autoComplete="email"
                 required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-          ) : null}
+            {mode !== "reset" ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="password">{t("auth.password")}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            ) : null}
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          {notice ? <p className="text-sm text-primary">{notice}</p> : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {notice ? <p className="text-sm text-primary">{notice}</p> : null}
 
-          <Button type="submit" className="w-full" disabled={busy}>
-            {mode === "signin"
-              ? t("auth.signIn")
-              : mode === "signup"
-                ? t("auth.createAccount")
-                : t("auth.sendResetLink")}
-          </Button>
-        </form>
+            <Button type="submit" className="w-full" disabled={busy}>
+              {mode === "signin"
+                ? t("auth.signIn")
+                : mode === "signup"
+                  ? t("auth.createAccount")
+                  : t("auth.sendResetLink")}
+            </Button>
+          </form>
 
-        <div className="mt-6 flex justify-between text-sm text-muted-foreground">
-          <button
-            type="button"
-            className="underline-offset-4 hover:underline"
-            onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
-          >
-            {mode === "signup" ? t("auth.haveAccount") : t("auth.createAccountLink")}
-          </button>
-          <button
-            type="button"
-            className="underline-offset-4 hover:underline"
-            onClick={() => setMode(mode === "reset" ? "signin" : "reset")}
-          >
-            {mode === "reset" ? t("auth.backToSignIn") : t("auth.forgotPassword")}
-          </button>
-        </div>
+          <div className="mt-6 flex justify-between text-sm text-muted-foreground">
+            <button
+              type="button"
+              className="underline-offset-4 hover:underline"
+              onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
+            >
+              {mode === "signup" ? t("auth.haveAccount") : t("auth.createAccountLink")}
+            </button>
+            <button
+              type="button"
+              className="underline-offset-4 hover:underline"
+              onClick={() => setMode(mode === "reset" ? "signin" : "reset")}
+            >
+              {mode === "reset" ? t("auth.backToSignIn") : t("auth.forgotPassword")}
+            </button>
+          </div>
         </div>
       </div>
     </div>

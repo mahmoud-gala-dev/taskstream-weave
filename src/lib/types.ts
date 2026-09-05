@@ -35,6 +35,8 @@ export type TableRow = Base & {
   name: string;
   icon?: string;
   color?: string;
+  /** Optional small note / caption displayed under the row title */
+  subtitle?: string;
   sortOrder: number;
 };
 
@@ -43,6 +45,8 @@ export type TableColumn = Base & {
   name: string;
   icon?: string;
   color?: string;
+  /** Optional small note / caption displayed under the column title */
+  subtitle?: string;
   sortOrder: number;
 };
 

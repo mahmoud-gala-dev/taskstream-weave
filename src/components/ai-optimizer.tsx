@@ -29,12 +29,14 @@ export function AiOptimizer({
   tableName,
   rows,
   columns,
+  hideHeader,
 }: {
   userId: string | null;
   tableId: string | null;
   tableName: string;
   rows: TableRow[];
   columns: TableColumn[];
+  hideHeader?: boolean;
 }) {
   const t = useT();
   const run = useServerFn(optimizeTable);
@@ -100,13 +102,17 @@ export function AiOptimizer({
   }
 
   return (
-    <section className="mt-6 rounded-lg border border-border bg-card p-4">
-      <h2 className="flex items-center gap-2 text-sm font-semibold">
-        <Sparkles className="size-4" aria-hidden />
-        {t("optimizer.structureTitle")}
-      </h2>
-      <p className="mt-1 text-xs text-muted-foreground">{t("optimizer.structureSubtitle")}</p>
-      <div className="mt-3 flex flex-wrap gap-2">
+    <section className={hideHeader ? "" : "mt-6 rounded-lg border border-border bg-card p-4"}>
+      {!hideHeader ? (
+        <>
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Sparkles className="size-4" aria-hidden />
+            {t("optimizer.structureTitle")}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">{t("optimizer.structureSubtitle")}</p>
+        </>
+      ) : null}
+      <div className={`flex flex-wrap gap-2 ${hideHeader ? "" : "mt-3"}`}>
         <Input
           value={goal}
           onChange={(e) => setGoal(e.target.value)}

@@ -63,7 +63,7 @@ const NAV = [
 
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, loading, signOut, error } = useAuth();
+  const { user, isGuest, loading, signOut, error } = useAuth();
   const t = useT();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -137,22 +137,51 @@ export function AppShell({ children }: { children: ReactNode }) {
         <PomodoroSummary />
         <RunningSummary />
         <div className="mt-auto space-y-2 pt-4">
-          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+          {isGuest ? (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-900 dark:text-amber-200">
+              <div className="flex items-center justify-between font-medium">
+                <span className="flex items-center gap-1">
+                  <Sparkles className="size-3.5 text-amber-600 dark:text-amber-400" />
+                  {t("auth.guestMode")}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider opacity-75">{t("auth.guestUser")}</span>
+              </div>
+              <p className="mt-1 text-[11px] leading-tight text-muted-foreground">
+                {t("auth.guestSubtitle")}
+              </p>
+              <Link
+                to="/auth"
+                className="mt-2 inline-flex items-center text-[11px] font-medium text-primary underline underline-offset-2 hover:opacity-80"
+              >
+                {t("auth.guestSyncPrompt")} →
+              </Link>
+            </div>
+          ) : (
+            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+          )}
           <DarkModeToggle />
           <ShortcutsPanel />
           <Button variant="outline" size="sm" className="w-full" onClick={() => void signOut()}>
-            <LogOut className="size-4" /> {t("nav.signOut")}
+            <LogOut className="size-4" /> {isGuest ? t("auth.exitGuest") : t("nav.signOut")}
           </Button>
         </div>
 
       </aside>
       <main className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 border-b border-border px-4 py-3 md:hidden">
-          {NAV.map(({ to, key }) => (
-            <Link key={to} to={to} className="text-sm text-muted-foreground">
-              {t(key)}
-            </Link>
-          ))}
+        <div className="flex items-center justify-between border-b border-border px-4 py-3 md:hidden">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {NAV.map(({ to, key }) => (
+              <Link key={to} to={to} className="text-sm whitespace-nowrap text-muted-foreground">
+                {t(key)}
+              </Link>
+            ))}
+          </div>
+          {isGuest ? (
+            <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              <Sparkles className="size-3" />
+              {t("auth.guestMode")}
+            </span>
+          ) : null}
         </div>
         {children}
       </main>

@@ -8,6 +8,7 @@ import { COL, createRecord, deleteRecord, updateRecord, watchUserCollection } fr
 import type { PageNote } from "@/lib/types";
 import { useT } from "@/lib/i18n";
 import { useWorkspace } from "@/lib/workspace-store";
+import { playDropSound } from "@/lib/sound";
 
 const ADD_EVENT = "work-os:add-page-note";
 
@@ -141,6 +142,7 @@ function DraggableNote({ note }: { note: PageNote }) {
           if (drag.current?.pointerId !== event.pointerId) return;
           drag.current = null;
           event.currentTarget.releasePointerCapture(event.pointerId);
+          playDropSound();
           void updateRecord<PageNote>(COL.pageNotes, note.id, positionRef.current).catch(() =>
             toast.error(t("ui.notes.positionFailed")),
           );
