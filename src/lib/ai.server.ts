@@ -15,7 +15,12 @@ export type Suggestion = {
 const TIMEOUT_MS = 25_000;
 
 export async function requestSuggestion(prompt: string): Promise<Suggestion> {
-  const apiKey = (process.env["GOOGLE_API_KEY"] ?? "").trim();
+  const apiKey = (
+    process.env["GEMINI_API_KEY"] ??
+    process.env["GOOGLE_API_KEY"] ??
+    process.env["VITE_GOOGLE_API_KEY"] ??
+    ""
+  ).trim();
   if (!apiKey) throw new Error("AI is not configured");
 
   const controller = new AbortController();

@@ -13,8 +13,22 @@ export type FirebaseBundle = {
 let bundle: Promise<FirebaseBundle> | undefined;
 
 async function init(): Promise<FirebaseBundle> {
-  const { getFirebaseConfig } = await import("./firebase-config.functions");
-  const config = await getFirebaseConfig();
+  let config;
+  try {
+    const { getFirebaseConfig } = await import("./firebase-config.functions");
+    config = await getFirebaseConfig();
+  } catch (err) {
+    console.warn("Falling back to default Firebase configuration:", err);
+    config = {
+      apiKey: "AIzaSyAx5xWPaYSevTGmcPFhOkmjLQWJ-s-X4qI",
+      authDomain: "link-hun.firebaseapp.com",
+      projectId: "link-hun",
+      storageBucket: "link-hun.firebasestorage.app",
+      messagingSenderId: "905152599816",
+      appId: "1:905152599816:web:b448faff9364406d1d7ebd",
+      measurementId: "G-GX5NFV3GRX",
+    };
+  }
 
   const [{ initializeApp, getApps, getApp }, authMod, firestoreMod, storageMod] =
     await Promise.all([

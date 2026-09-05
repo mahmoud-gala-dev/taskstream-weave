@@ -12,7 +12,12 @@ import { createServerFn } from "@tanstack/react-start";
  * Errors: throws if GOOGLE_API_KEY is not configured.
  */
 export const getFirebaseConfig = createServerFn({ method: "GET" }).handler(async () => {
-  const apiKey = (process.env["GOOGLE_API_KEY"] ?? "").trim();
+  const apiKey = (
+    process.env["GOOGLE_API_KEY"] ??
+    process.env["VITE_GOOGLE_API_KEY"] ??
+    process.env["FIREBASE_API_KEY"] ??
+    "AIzaSyAx5xWPaYSevTGmcPFhOkmjLQWJ-s-X4qI"
+  ).trim();
   if (!apiKey) throw new Error("GOOGLE_API_KEY is not configured");
 
   return {
