@@ -397,6 +397,7 @@ export const messages = {
     ...shortcutsMessages.en,
     ...goalsMessages.en,
     ...gridMessages.en,
+    ...archiveMessages.en,
   },
   ar: {
     ...baseMessages.ar,
