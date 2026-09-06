@@ -24,7 +24,9 @@ import { useTick } from "@/hooks/useTick";
 import { COL, createRecord, deleteRecord, updateRecord, watchUserCollection } from "@/lib/db";
 import { bySortOrder, orderAtEnd, orderForIndex } from "@/lib/order";
 import {
+  MANUAL_ROUND_SECONDS,
   completedRoundsForItem,
+  creditRoundToItem,
   elapsedSeconds,
   formatDuration,
   pauseSession,
@@ -32,6 +34,7 @@ import {
   startSession,
   stopSession,
 } from "@/lib/sessions";
+
 import type {
   Attachment,
   ItemStatus,
