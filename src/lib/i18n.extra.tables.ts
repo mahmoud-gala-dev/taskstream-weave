@@ -4,6 +4,7 @@
  */
 export const tablesMessages = {
   en: {
+    "tables.snapshotAdded": "Snapshot saved",
     "tables.sectionsTitle": "Sections",
     "tables.addSection": "Add section",
     "tables.addTable": "Add table",
@@ -152,7 +153,6 @@ export const tablesMessages = {
   },
   ar: {
     "tables.snapshotAdded": "تم حفظ اللقطة",
-    "tables.snapshotAdded": "Snapshot saved",
     "tables.sectionsTitle": "الأقسام",
     "tables.addSection": "إضافة قسم",
     "tables.addTable": "إضافة جدول",
