@@ -1793,6 +1793,7 @@ export async function extractImageFromDataTransfer(dt: DataTransfer | null): Pro
   if (dt.items && dt.items.length > 0) {
     for (let i = 0; i < dt.items.length; i++) {
       const item = dt.items[i];
+      if (!item) continue;
       if (item.kind === "file" && item.type.startsWith("image/")) {
         const file = item.getAsFile();
         if (file) {
@@ -1926,6 +1927,7 @@ function CellNote({
     if (!items) return;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+      if (!item) continue;
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
         if (file) {
@@ -2845,6 +2847,7 @@ function Cell({
     if (!items) return;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+      if (!item) continue;
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
         if (file) {
