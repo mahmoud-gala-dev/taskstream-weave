@@ -2569,7 +2569,10 @@ function LineHeader({
           value={name}
           onCommit={onRename}
           multiline
-          className="text-sm font-bold tracking-tight text-foreground block leading-snug break-words"
+          className={cn(
+            "text-sm font-bold tracking-tight text-foreground block leading-snug break-words [overflow-wrap:anywhere] hyphens-auto",
+            fitText(name),
+          )}
           ariaLabel={t("tables.lineNameLabel", { kind: kindLabel })}
         />
         {subtitleBadge}
@@ -2611,7 +2614,10 @@ function LineHeader({
           value={name}
           onCommit={onRename}
           multiline
-          className="text-sm font-semibold text-foreground/95 block leading-snug break-words"
+          className={cn(
+            "text-sm font-semibold text-foreground/95 block leading-snug break-words [overflow-wrap:anywhere] hyphens-auto",
+            fitText(name),
+          )}
           ariaLabel={t("tables.lineNameLabel", { kind: kindLabel })}
         />
         {subtitleBadge}
