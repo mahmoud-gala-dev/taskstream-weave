@@ -2750,7 +2750,20 @@ const STATUSES: { value: ItemStatus; labelKey: "tables.statusTodo" | "tables.sta
   { value: "done", labelKey: "tables.statusDone" },
 ];
 
+/**
+ * Scales long text down a step at a time so it stays inside the cell instead
+ * of spilling over its border.
+ */
+function fitText(text?: string | null): string {
+  const len = text?.length ?? 0;
+  if (len > 240) return "text-[9px] leading-[1.35]";
+  if (len > 130) return "text-[10px] leading-[1.4]";
+  if (len > 60) return "text-[11px] leading-snug";
+  return "";
+}
+
 function Cell({
+
   tableId,
   rowId,
   columnId,
