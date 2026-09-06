@@ -859,6 +859,14 @@ function TablesPage() {
             <Button variant="outline" size="sm" onClick={() => setArchiveOpen(true)}>
               <Archive className="size-4" /> {t("archive.openPanel")}
             </Button>
+            <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+              <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{t("archive.panelTitle")}</DialogTitle>
+                </DialogHeader>
+                <ArchivePanel {...(currentTableId ? { lockedTableId: currentTableId } : {})} />
+              </DialogContent>
+            </Dialog>
             {archivedCount || showArchived ? (
               <Button
                 variant={showArchived ? "secondary" : "outline"}
@@ -1263,15 +1271,6 @@ function TablesPage() {
                 </ContextMenuItem>
               </ContextMenuContent>
               </ContextMenu>
-
-              <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
-                <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>{t("archive.panelTitle")}</DialogTitle>
-                  </DialogHeader>
-                  <ArchivePanel lockedTableId={table.id} />
-                </DialogContent>
-              </Dialog>
 
               {/* Focus sessions in this table */}
               <div className="mt-6 rounded-xl border border-border bg-card/40 p-4 shadow-sm transition-all">
