@@ -151,6 +151,8 @@ export const tablesMessages = {
     "tables.openTopic": "Open topic",
   },
   ar: {
+    "tables.snapshotAdded": "تم حفظ اللقطة",
+    "tables.snapshotAdded": "Snapshot saved",
     "tables.sectionsTitle": "الأقسام",
     "tables.addSection": "إضافة قسم",
     "tables.addTable": "إضافة جدول",
