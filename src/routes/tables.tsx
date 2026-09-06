@@ -15,6 +15,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Archive,
+  Waypoints,
   ArchiveRestore,
   Bookmark,
   Clock3,
@@ -1239,6 +1240,7 @@ function TablesPage() {
                       </div>
                     );
                   })}
+                  <CellArrows containerRef={gridRef} links={cellLinks} onRemove={(id) => void removeCellLink(id)} />
                 </div>
                 {!tableColumns.length || !tableRows.length ? (
                   <p className="mt-4 text-sm text-muted-foreground">
@@ -1261,6 +1263,15 @@ function TablesPage() {
                 </ContextMenuItem>
               </ContextMenuContent>
               </ContextMenu>
+
+              <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+                <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{t("archive.panelTitle")}</DialogTitle>
+                  </DialogHeader>
+                  <ArchivePanel lockedTableId={table.id} />
+                </DialogContent>
+              </Dialog>
 
               {/* Focus sessions in this table */}
               <div className="mt-6 rounded-xl border border-border bg-card/40 p-4 shadow-sm transition-all">
