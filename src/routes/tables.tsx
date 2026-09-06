@@ -82,6 +82,9 @@ import { TableFocusTray } from "@/components/table-focus-tray";
 import { FocusTaskTable } from "@/components/focus-task-table";
 import { TABLE_TEMPLATES, TableTemplates, type TableTemplate } from "@/components/table-templates";
 import { ImageLightbox } from "@/components/image-lightbox";
+import { ArchivePanel } from "@/components/archive-panel";
+import { CellArrows } from "@/components/cell-arrows";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { COL, createRecord, deleteRecord, updateRecord } from "@/lib/db";
 import { trackEvent } from "@/lib/firebase";
 import {
@@ -101,7 +104,7 @@ import { DUE_COLORS, dueTone, type DueTone } from "@/lib/due";
 import { confirmToast } from "@/lib/confirm";
 import { useSettings } from "@/lib/settings-store";
 import { readSnapshot } from "@/lib/table-snapshot";
-import type { ItemStatus, ItemType, Note, Placement, Priority, TableCell, WorkItem } from "@/lib/types";
+import type { ItemStatus, ItemType, Note, Placement, Priority, TableCell, WorkItem, WorkTable } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace-store";
 import { playDropSound } from "@/lib/sound";
@@ -158,6 +161,9 @@ function TablesPage() {
   const [focusMode, setFocusMode] = useState(false);
   const [sectionOpenOverrides, setSectionOpenOverrides] = useState<Record<string, boolean>>({});
   const [showArchived, setShowArchived] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [linkFrom, setLinkFrom] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [showFocusSessions, setShowFocusSessions] = useState(() => {
     if (typeof window === "undefined") return true;
     const v = window.localStorage.getItem("work-os:show-focus-sessions");
@@ -246,6 +252,33 @@ function TablesPage() {
       ? activeTableId
       : ([...tables].sort(bySortOrder)[0]?.id ?? null);
   const table = tables.find((t) => t.id === currentTableId) ?? null;
+  const cellLinks = table?.cellLinks ?? [];
+
+  /** First click marks the source cell, the second one draws the arrow. */
+  async function toggleCellLink(key: string) {
+    if (!table) return;
+    if (!linkFrom) {
+      setLinkFrom(key);
+      toast(t("cellLink.pending"));
+      return;
+    }
+    if (linkFrom === key) {
+      setLinkFrom(null);
+      return;
+    }
+    const next = [...cellLinks, { id: `${Date.now()}`, from: linkFrom, to: key }];
+    await updateRecord<WorkTable>(COL.tables, table.id, { cellLinks: next } as never);
+    setLinkFrom(null);
+    toast.success(t("cellLink.created"));
+  }
+
+  async function removeCellLink(id: string) {
+    if (!table) return;
+    await updateRecord<WorkTable>(COL.tables, table.id, {
+      cellLinks: cellLinks.filter((l) => l.id !== id),
+    } as never);
+    toast.success(t("cellLink.removed"));
+  }
   const tableRows = useMemo(
     () => rows.filter((r) => r.tableId === currentTableId).sort(bySortOrder),
     [rows, currentTableId],
@@ -822,6 +855,9 @@ function TablesPage() {
                 </>
               )}
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setArchiveOpen(true)}>
+              <Archive className="size-4" /> {t("archive.openPanel")}
+            </Button>
             {archivedCount || showArchived ? (
               <Button
                 variant={showArchived ? "secondary" : "outline"}
@@ -1061,7 +1097,8 @@ function TablesPage() {
                 }}
               >
                 <div
-                  className={cn("grid gap-2", focusMode ? "w-full" : "min-w-fit")}
+                  ref={gridRef}
+                  className={cn("relative grid gap-2", focusMode ? "w-full" : "min-w-fit")}
                   style={{
                     gridTemplateColumns: focusMode
                       ? `minmax(8rem, max-content) repeat(${Math.max(visibleColumns.length, 1)}, minmax(0, 1fr))`
@@ -1103,6 +1140,9 @@ function TablesPage() {
                           tableId={table.id}
                           rowId={row.id}
                           columnId={columnId}
+                          linking={linkFrom === `${row.id}:${columnId}`}
+                          linkPending={Boolean(linkFrom)}
+                          onToggleLink={() => void toggleCellLink(`${row.id}:${columnId}`)}
                           cell={cellByKey.get(`${row.id}:${columnId}`) ?? null}
                           onStyle={(patch) => void setCellStyle(row.id, columnId, patch)}
                           onMoveImage={(fromRowId, fromColId, img) =>
@@ -2702,6 +2742,9 @@ function Cell({
   tableId,
   rowId,
   columnId,
+  linking,
+  linkPending,
+  onToggleLink,
   cell,
   onStyle,
   placements,
@@ -2725,6 +2768,9 @@ function Cell({
   tableId: string;
   rowId: string;
   columnId: string;
+  linking: boolean;
+  linkPending: boolean;
+  onToggleLink: () => void;
   cell: TableCell | null;
   onStyle: (patch: CellPatch) => void;
   onMoveImage?: ((fromRowId: string, fromColumnId: string, image: string) => void) | undefined;
@@ -2973,9 +3019,11 @@ function Cell({
         backgroundColor: tint(cell?.color, 0.1),
         borderColor: cell?.color ?? undefined,
       }}
+      data-cell-key={`${rowId}:${columnId}`}
       className={cn(
-        "relative flex min-h-28 flex-col gap-2 rounded-md border border-dashed border-border bg-card/30 p-2 transition-all",
+        "group/cell relative flex min-h-28 flex-col gap-2 rounded-md border border-dashed border-border bg-card/30 p-2 transition-all",
         isOver && "border-primary bg-primary/10",
+        linking && "border-primary ring-2 ring-primary/50",
         cellDragType === "image" && "border-primary ring-2 ring-primary/60 bg-primary/15 shadow-md scale-[1.01]",
         cellDragType === "note" && "border-amber-500 ring-2 ring-amber-500/60 bg-amber-500/15 shadow-md scale-[1.01]",
       )}
@@ -3003,6 +3051,18 @@ function Cell({
         className="hidden"
         onChange={handleCellFileUpload}
       />
+      <button
+        type="button"
+        onClick={onToggleLink}
+        aria-label={linking ? t("cellLink.cancel") : linkPending ? t("cellLink.finish") : t("cellLink.start")}
+        title={linking ? t("cellLink.cancel") : linkPending ? t("cellLink.finish") : t("cellLink.start")}
+        className={cn(
+          "absolute end-1.5 top-1.5 z-20 rounded-full border border-border bg-background/90 p-1 text-muted-foreground opacity-0 transition group-hover/cell:opacity-100 hover:text-primary",
+          (linking || linkPending) && "opacity-100 text-primary",
+        )}
+      >
+        <Waypoints className="size-3.5" />
+      </button>
       {cell?.icon ? (
         <p className="flex items-center gap-1 text-2xl leading-none">
           <span aria-hidden>{cell.icon}</span>
