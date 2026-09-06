@@ -3067,7 +3067,7 @@ function Cell({
       }}
       data-cell-key={`${rowId}:${columnId}`}
       className={cn(
-        "group/cell relative flex min-h-28 flex-col gap-2 rounded-md border border-dashed border-border bg-card/30 p-2 transition-all",
+        "group/cell relative flex min-h-28 flex-col gap-2 overflow-hidden rounded-md border border-dashed border-border bg-card/30 p-2 transition-all",
         isOver && "border-primary bg-primary/10",
         linking && "border-primary ring-2 ring-primary/50",
         cellDragType === "image" && "border-primary ring-2 ring-primary/60 bg-primary/15 shadow-md scale-[1.01]",
