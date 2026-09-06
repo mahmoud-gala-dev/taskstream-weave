@@ -449,9 +449,21 @@ function ItemWorkspace() {
                     <Play className="size-4" /> {t("item.sessions.resume")}
                   </Button>
                 )}
-                <Button size="sm" variant="secondary" onClick={() => void stopSession(open)}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    void stopSession(open).then(() => {
+                      // A full-length session also advances the task's own progress.
+                      if (elapsedSeconds(open, Date.now()) >= MANUAL_ROUND_SECONDS) {
+                        void creditRoundToItem(item);
+                      }
+                    })
+                  }
+                >
                   <Square className="size-4" /> {t("item.sessions.stop")}
                 </Button>
+
               </>
             )}
           </div>
