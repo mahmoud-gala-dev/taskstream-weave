@@ -1,9 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { ArchiveRestore, ExternalLink, RotateCcw, Timer, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,42 +21,22 @@ import type { WorkItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace-store";
 
-export const Route = createFileRoute("/archive")({
-  head: () => ({
-    meta: [
-      { title: "Archive — Personal Work OS" },
-      {
-        name: "description",
-        content:
-          "Review completed tasks and finished focus rounds with their full details, filtered by table.",
-      },
-      { property: "og:title", content: "Archive — Personal Work OS" },
-      {
-        property: "og:description",
-        content: "Completed work, finished focus rounds and archived items, one click away from coming back.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: () => (
-    <AppShell>
-      <ArchivePage />
-    </AppShell>
-  ),
-});
-
 type Tab = "all" | "tasks" | "rounds" | "archived";
 const TABS: Tab[] = ["all", "tasks", "rounds", "archived"];
 
-/** Completed tasks, finished focus rounds and archived items, filtered by table. */
-function ArchivePage() {
+/**
+ * Completed tasks, finished focus rounds and archived items. When `lockedTableId`
+ * is set the panel only shows what belongs to that table, so the grid filters
+ * and the archive stay in sync.
+ */
+export function ArchivePanel({ lockedTableId }: { lockedTableId?: string }) {
   const t = useT();
   const navigate = useNavigate();
   const { items, placements, sessions, tables, rows, columns } = useWorkspace();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<Tab>("all");
-  const [tableId, setTableId] = useState<string>("all");
+  const [pickedTable, setPickedTable] = useState<string>("all");
+  const tableId = lockedTableId ?? pickedTable;
 
   const nameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -67,7 +46,6 @@ function ArchivePage() {
     return map;
   }, [tables, rows, columns]);
 
-  /** Where each item lives, so the archive can mirror the table filters. */
   const spotsByItem = useMemo(() => {
     const map = new Map<string, { tableId: string; label: string }[]>();
     placements.forEach((p) => {
@@ -236,18 +214,14 @@ function ArchivePage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">{t("archive.title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("archive.subtitle")}</p>
-        <p className="text-xs text-muted-foreground">
-          {t("archive.summary", {
-            tasks: completedTasks.length,
-            rounds: rounds.length,
-            hours: formatDuration(trackedSeconds),
-          })}
-        </p>
-      </header>
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        {t("archive.summary", {
+          tasks: completedTasks.length,
+          rounds: rounds.length,
+          hours: formatDuration(trackedSeconds),
+        })}
+      </p>
 
       <div className="flex flex-wrap items-center gap-2">
         {TABS.map((key) => (
@@ -260,19 +234,21 @@ function ArchivePage() {
             {t(`archive.tab.${key}` as "archive.tab.all")}
           </Button>
         ))}
-        <Select value={tableId} onValueChange={setTableId}>
-          <SelectTrigger className="h-9 w-44" aria-label={t("archive.filterTable")}>
-            <SelectValue placeholder={t("archive.filterTable")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("archive.allTables")}</SelectItem>
-            {tables.map((table) => (
-              <SelectItem key={table.id} value={table.id}>
-                {table.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {lockedTableId ? null : (
+          <Select value={pickedTable} onValueChange={setPickedTable}>
+            <SelectTrigger className="h-9 w-44" aria-label={t("archive.filterTable")}>
+              <SelectValue placeholder={t("archive.filterTable")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("archive.allTables")}</SelectItem>
+              {tables.map((table) => (
+                <SelectItem key={table.id} value={table.id}>
+                  {table.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -290,7 +266,7 @@ function ArchivePage() {
 
       {showTasks && completedTasks.length ? (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold">{t("archive.tab.tasks")}</h2>
+          <h3 className="text-sm font-semibold">{t("archive.tab.tasks")}</h3>
           <ul className="space-y-2">
             {completedTasks.map((item) => (
               <ItemRow key={item.id} item={item} archived={false} />
@@ -301,7 +277,7 @@ function ArchivePage() {
 
       {showRounds && rounds.length ? (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold">{t("archive.tab.rounds")}</h2>
+          <h3 className="text-sm font-semibold">{t("archive.tab.rounds")}</h3>
           <ul className="space-y-2">
             {rounds.map((session) => (
               <li
@@ -335,9 +311,9 @@ function ArchivePage() {
 
       {showArchived && archivedItems.length ? (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold">
+          <h3 className="text-sm font-semibold">
             {t("archive.tab.archived")} · {t("archive.count", { count: archivedItems.length })}
-          </h2>
+          </h3>
           <ul className="space-y-2">
             {archivedItems.map((item) => (
               <ItemRow key={item.id} item={item} archived />

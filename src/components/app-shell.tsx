@@ -19,15 +19,15 @@ import {
 
   Timer,
   Wand2,
-  Archive,
 } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { GlobalContextMenu } from "@/components/global-context-menu";
 import { PageHighlighter } from "@/components/page-highlighter";
 import { PageStickyNotes } from "@/components/page-sticky-notes";
 import { ShortcutsPanel } from "@/components/shortcuts-panel";
 import { QuickCapture } from "@/components/quick-capture";
+import { ReminderInbox } from "@/components/reminder-inbox";
 import { Button } from "@/components/ui/button";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,7 +55,6 @@ const NAV = [
   { to: "/topics", key: "nav.topics", icon: Tags },
   { to: "/documentation", key: "nav.documentation", icon: FileText },
   { to: "/search", key: "nav.search", icon: Search },
-  { to: "/archive", key: "nav.archive", icon: Archive },
   { to: "/install", key: "nav.install", icon: Download },
   { to: "/settings", key: "nav.settings", icon: Settings },
 ] as const satisfies ReadonlyArray<{ to: string; key: MessageKey; icon: typeof Timer }>;
@@ -159,6 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           ) : (
             <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
           )}
+          <InstallButton />
           <DarkModeToggle />
           <ShortcutsPanel />
           <Button variant="outline" size="sm" className="w-full" onClick={() => void signOut()}>
@@ -185,6 +185,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         {children}
       </main>
+      <ReminderInbox />
       <PageStickyNotes />
       <PageHighlighter />
       <QuickCapture />
@@ -193,6 +194,44 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
+
+type InstallPrompt = Event & { prompt: () => Promise<void> };
+
+/** Home-screen install shortcut; falls back to the guided install page. */
+function InstallButton() {
+  const t = useT();
+  const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
+  const [standalone, setStandalone] = useState(false);
+
+  useEffect(() => {
+    setStandalone(window.matchMedia("(display-mode: standalone)").matches);
+    function onPrompt(event: Event) {
+      event.preventDefault();
+      setPrompt(event as InstallPrompt);
+    }
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+  }, []);
+
+  if (standalone) return null;
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full"
+      onClick={() => {
+        if (prompt) void prompt.prompt();
+        else void navigateToInstall();
+      }}
+    >
+      <Download className="size-4" /> {t("install.cta")}
+    </Button>
+  );
+}
+
+function navigateToInstall() {
+  if (typeof window !== "undefined") window.location.assign("/install");
+}
 
 function RunningSummary() {
   const { sessions } = useWorkspace();

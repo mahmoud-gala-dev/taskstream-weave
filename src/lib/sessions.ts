@@ -25,8 +25,21 @@ export function isPomodoroRound(s: Pick<WorkSession, "sessionKind" | "title">): 
   return s.sessionKind === "pomodoroRound" || s.title.endsWith("— focus round");
 }
 
+/** A manual session this long (or longer) counts as one finished focus round. */
+export const MANUAL_ROUND_SECONDS = 20 * 60;
+
+/**
+ * Finished rounds for a task: Pomodoro rounds plus manual sessions started from
+ * the task page, so time tracked there also moves the round and goal progress.
+ */
 export function completedRoundsForItem(sessions: WorkSession[], itemId: string): number {
-  return sessions.filter((s) => s.itemId === itemId && isPomodoroRound(s)).length;
+  return sessions
+    .filter((s) => s.itemId === itemId)
+    .reduce((total, s) => {
+      if (isPomodoroRound(s)) return total + 1;
+      if (s.status !== "stopped") return total;
+      return total + Math.floor(elapsedSeconds(s) / MANUAL_ROUND_SECONDS);
+    }, 0);
 }
 
 export async function startSession(

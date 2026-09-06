@@ -28,6 +28,8 @@ export type WorkTable = Base & {
   sortOrder: number;
   isArchived?: boolean;
   isFavorite?: boolean;
+  /** Arrows drawn between two cells, keyed as `rowId:columnId`. */
+  cellLinks?: { id: ID; from: string; to: string }[];
 };
 
 export type TableRow = Base & {
