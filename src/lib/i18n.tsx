@@ -9,6 +9,7 @@ import { tablesMessages } from "@/lib/i18n.extra.tables";
 import { gridMessages } from "@/lib/i18n.extra.grid";
 import { archiveMessages } from "@/lib/i18n.extra.archive";
 import { mobileMessages } from "@/lib/i18n.extra.mobile";
+import { builderMessages } from "@/lib/i18n.extra.builder";
 import { uiMessages } from "@/lib/i18n.extra.ui";
 import { shortcutsMessages } from "@/lib/i18n.extra.shortcuts";
 import { reportMessages } from "@/lib/i18n.extra.report";
@@ -414,6 +415,7 @@ export const messages = {
     ...gridMessages.en,
     ...archiveMessages.en,
     ...mobileMessages.en,
+    ...builderMessages.en,
   },
   ar: {
     ...baseMessages.ar,
@@ -430,6 +432,7 @@ export const messages = {
     ...gridMessages.ar,
     ...archiveMessages.ar,
     ...mobileMessages.ar,
+    ...builderMessages.ar,
   },
 } as const;
 

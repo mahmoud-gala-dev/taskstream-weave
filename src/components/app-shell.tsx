@@ -43,6 +43,7 @@ import { useT, type MessageKey } from "@/lib/i18n";
 const NAV = [
   { to: "/", key: "nav.today", icon: LayoutDashboard },
   { to: "/tables", key: "nav.tables", icon: Table2 },
+  { to: "/builder", key: "nav.builder", icon: Table2 },
   { to: "/focus", key: "nav.focus", icon: Timer },
   { to: "/goals", key: "nav.goals", icon: Target },
   { to: "/report", key: "nav.report", icon: BarChart3 },

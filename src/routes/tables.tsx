@@ -2081,9 +2081,15 @@ function CellNote({
             >
               <GripVertical className="mt-0.5 size-3.5 shrink-0 text-amber-600/60 group-hover/notedrag:text-amber-700 dark:group-hover/notedrag:text-amber-400 transition-colors" aria-hidden />
               <StickyNote className="mt-px size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-              <span className="line-clamp-3 whitespace-pre-wrap break-words flex-1 text-foreground/90 font-normal">
+              <span
+                className={cn(
+                  "line-clamp-6 min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-foreground/90 font-normal",
+                  fitText(note),
+                )}
+              >
                 {note}
               </span>
+
             </div>
           ) : null}
           {noteImage ? (
@@ -2750,7 +2756,20 @@ const STATUSES: { value: ItemStatus; labelKey: "tables.statusTodo" | "tables.sta
   { value: "done", labelKey: "tables.statusDone" },
 ];
 
+/**
+ * Scales long text down a step at a time so it stays inside the cell instead
+ * of spilling over its border.
+ */
+function fitText(text?: string | null): string {
+  const len = text?.length ?? 0;
+  if (len > 240) return "text-[9px] leading-[1.35]";
+  if (len > 130) return "text-[10px] leading-[1.4]";
+  if (len > 60) return "text-[11px] leading-snug";
+  return "";
+}
+
 function Cell({
+
   tableId,
   rowId,
   columnId,
@@ -3028,6 +3047,14 @@ function Cell({
       onDragOver={handleCellDragOver}
       onDragLeave={handleCellDragLeave}
       onDrop={handleCellDrop}
+      onDoubleClick={(e) => {
+        // Double-click on empty cell space starts a new task right here.
+        if (e.target !== e.currentTarget) return;
+        e.preventDefault();
+        setDraft("");
+        setAdding("task");
+      }}
+
       style={{
         backgroundColor: tint(cell?.color, 0.1),
         borderColor: cell?.color ?? undefined,
@@ -3330,8 +3357,10 @@ function ItemCard({
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-start">
           <span
             className={cn(
-              "block text-sm leading-snug",
+              "block text-sm leading-snug break-words [overflow-wrap:anywhere] hyphens-auto",
+              fitText(item.title),
               isTask ? "" : "font-semibold uppercase tracking-wide text-primary",
+
             )}
           >
             <span aria-hidden>{item.icon ?? (isTask ? "✓" : "◫")} </span>
