@@ -2,65 +2,46 @@ import { useCallback, useEffect, useState, type RefObject } from "react";
 
 export type CellLink = { id: string; from: string; to: string };
 
-type Geometry = { id: string; main: string; ghost: string; head: string; midX: number; midY: number };
-
-/** Deterministic 0..1 pseudo-random generator so a link always wobbles the same way. */
-function seeded(seed: string) {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return () => {
-    h += 0x6d2b79f5;
-    let x = Math.imul(h ^ (h >>> 15), 1 | h);
-    x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-  };
-}
+type Geometry = { id: string; path: string; head: string; midX: number; midY: number };
 
 /**
- * Builds a wobbly poly-line between two points so the stroke reads like a
- * pencil sketch instead of a perfect vector curve.
+ * Smooth cubic curve between two points: control points are pushed along the
+ * direction of travel and bowed sideways, which reads as an elegant flowing
+ * connector rather than a straight line.
  */
-function sketchPath(x1: number, y1: number, x2: number, y2: number, rand: () => number, amp: number) {
+function curvePath(x1: number, y1: number, x2: number, y2: number) {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const len = Math.hypot(dx, dy) || 1;
-  // Unit normal: the arc bows sideways like a drawn-by-hand connector.
   const nx = -dy / len;
   const ny = dx / len;
-  const bow = Math.min(90, len * 0.22);
-  const steps = 8;
-  let d = `M ${x1} ${y1}`;
-  for (let i = 1; i <= steps; i++) {
-    const t = i / steps;
-    const curve = Math.sin(Math.PI * t) * bow;
-    const jitter = (rand() - 0.5) * amp;
-    const px = x1 + dx * t + nx * (curve + jitter);
-    const py = y1 + dy * t + ny * (curve + jitter);
-    d += ` L ${px.toFixed(1)} ${py.toFixed(1)}`;
-  }
-  const midT = 0.5;
-  const midCurve = bow;
+  const bow = Math.min(70, len * 0.18);
+  const c1x = x1 + dx * 0.3 + nx * bow;
+  const c1y = y1 + dy * 0.3 + ny * bow;
+  const c2x = x1 + dx * 0.7 + nx * bow;
+  const c2y = y1 + dy * 0.7 + ny * bow;
+  // Point on the curve at t = 0.5 (for the delete dot) and the tangent at the end.
+  const midX = 0.125 * x1 + 0.375 * c1x + 0.375 * c2x + 0.125 * x2;
+  const midY = 0.125 * y1 + 0.375 * c1y + 0.375 * c2y + 0.125 * y2;
   return {
-    d,
-    midX: x1 + dx * midT + nx * midCurve,
-    midY: y1 + dy * midT + ny * midCurve,
+    d: `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`,
+    midX,
+    midY,
+    tangent: Math.atan2(y2 - c2y, x2 - c2x),
   };
 }
 
-/** Two short strokes forming a hand-drawn arrow head at the end point. */
-function sketchHead(x1: number, y1: number, x2: number, y2: number, rand: () => number) {
-  const angle = Math.atan2(y2 - y1, x2 - x1);
-  const size = 13;
-  const spread = 0.42;
-  const a1 = angle + Math.PI - spread + (rand() - 0.5) * 0.2;
-  const a2 = angle + Math.PI + spread + (rand() - 0.5) * 0.2;
-  return (
-    `M ${x2 + Math.cos(a1) * size} ${y2 + Math.sin(a1) * size} L ${x2} ${y2} ` +
-    `L ${x2 + Math.cos(a2) * size} ${y2 + Math.sin(a2) * size}`
-  );
+/** Slim filled triangle aligned with the curve tangent. */
+function arrowHead(x: number, y: number, angle: number) {
+  const size = 12;
+  const spread = 0.34;
+  const ax = x - Math.cos(angle - spread) * size;
+  const ay = y - Math.sin(angle - spread) * size;
+  const bx = x - Math.cos(angle + spread) * size;
+  const by = y - Math.sin(angle + spread) * size;
+  const cx = x - Math.cos(angle) * size * 0.55;
+  const cy = y - Math.sin(angle) * size * 0.55;
+  return `M ${x.toFixed(1)} ${y.toFixed(1)} L ${ax.toFixed(1)} ${ay.toFixed(1)} L ${cx.toFixed(1)} ${cy.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} Z`;
 }
 
 /**
@@ -107,15 +88,13 @@ export function CellArrows({
       const sx = x1 + Math.cos(angle) * (Math.min(ra.width, ra.height) / 2 - 4);
       const sy = y1 + Math.sin(angle) * (Math.min(ra.width, ra.height) / 2 - 4);
 
-      const main = sketchPath(sx, sy, ex, ey, seeded(link.id), 3.5);
-      const ghost = sketchPath(sx, sy, ex, ey, seeded(`${link.id}-ghost`), 5);
+      const curve = curvePath(sx, sy, ex, ey);
       next.push({
         id: link.id,
-        main: main.d,
-        ghost: ghost.d,
-        head: sketchHead(sx, sy, ex, ey, seeded(`${link.id}-head`)),
-        midX: main.midX,
-        midY: main.midY,
+        path: curve.d,
+        head: arrowHead(ex, ey, curve.tangent),
+        midX: curve.midX,
+        midY: curve.midY,
       });
     }
     setPaths(next);
@@ -148,39 +127,34 @@ export function CellArrows({
       aria-hidden
     >
       <defs>
-        <filter id="work-os-sketch" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves={2} seed={7} result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+        <linearGradient id="work-os-arrow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.35" className="text-primary" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="1" className="text-primary" />
+        </linearGradient>
+        <filter id="work-os-arrow-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="currentColor" floodOpacity="0.25" />
         </filter>
       </defs>
       {paths.map((p) => (
-        <g key={p.id} filter="url(#work-os-sketch)">
-          {/* Faint second pass: the "twice drawn" pencil feel. */}
+        <g key={p.id} className="text-primary" filter="url(#work-os-arrow-glow)">
+          {/* Soft halo so the curve stays readable over any cell colour. */}
           <path
-            d={p.ghost}
-            className="stroke-primary/35"
-            strokeWidth={1.6}
+            d={p.path}
+            className="stroke-background"
+            strokeWidth={6}
+            fill="none"
+            strokeLinecap="round"
+            opacity={0.75}
+          />
+          <path
+            d={p.path}
+            stroke="url(#work-os-arrow-grad)"
+            strokeWidth={2.4}
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <path
-            d={p.main}
-            className="stroke-primary"
-            strokeWidth={2.2}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.9}
-          />
-          <path
-            d={p.head}
-            className="stroke-primary"
-            strokeWidth={2.2}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d={p.head} className="fill-primary" stroke="none" />
         </g>
       ))}
       {paths.map((p) => (
