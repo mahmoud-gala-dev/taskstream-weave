@@ -3357,8 +3357,10 @@ function ItemCard({
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-start">
           <span
             className={cn(
-              "block text-sm leading-snug",
+              "block text-sm leading-snug break-words [overflow-wrap:anywhere] hyphens-auto",
+              fitText(item.title),
               isTask ? "" : "font-semibold uppercase tracking-wide text-primary",
+
             )}
           >
             <span aria-hidden>{item.icon ?? (isTask ? "✓" : "◫")} </span>
