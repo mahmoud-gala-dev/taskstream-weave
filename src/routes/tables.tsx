@@ -3047,6 +3047,14 @@ function Cell({
       onDragOver={handleCellDragOver}
       onDragLeave={handleCellDragLeave}
       onDrop={handleCellDrop}
+      onDoubleClick={(e) => {
+        // Double-click on empty cell space starts a new task right here.
+        if (e.target !== e.currentTarget) return;
+        e.preventDefault();
+        setDraft("");
+        setAdding("task");
+      }}
+
       style={{
         backgroundColor: tint(cell?.color, 0.1),
         borderColor: cell?.color ?? undefined,
