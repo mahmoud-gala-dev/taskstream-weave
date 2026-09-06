@@ -94,14 +94,25 @@ export async function deleteTableCascade(
     rows: { id: string; tableId: string }[];
     columns: { id: string; tableId: string }[];
     cells: { id: string; tableId: string }[];
-    placements: { id: string; tableId: string }[];
+    placements: { id: string; tableId: string; itemId: string }[];
+    items?: { id: string }[];
   },
 ): Promise<void> {
-  const entries: Array<[typeof COL.rows | typeof COL.columns | typeof COL.cells | typeof COL.placements | typeof COL.tables, string]> = [];
+  const entries: Array<[typeof COL.rows | typeof COL.columns | typeof COL.cells | typeof COL.placements | typeof COL.items | typeof COL.tables, string]> = [];
   data.rows.filter((r) => r.tableId === tableId).forEach((r) => entries.push([COL.rows, r.id]));
   data.columns.filter((c) => c.tableId === tableId).forEach((c) => entries.push([COL.columns, c.id]));
   data.cells.filter((c) => c.tableId === tableId).forEach((c) => entries.push([COL.cells, c.id]));
-  data.placements.filter((p) => p.tableId === tableId).forEach((p) => entries.push([COL.placements, p.id]));
+  const inside = data.placements.filter((p) => p.tableId === tableId);
+  inside.forEach((p) => entries.push([COL.placements, p.id]));
+  // Tasks/topics that live only in this table are deleted too; anything also
+  // placed in another table survives.
+  if (data.items) {
+    const elsewhere = new Set(
+      data.placements.filter((p) => p.tableId !== tableId).map((p) => p.itemId),
+    );
+    const orphaned = new Set(inside.map((p) => p.itemId).filter((id) => !elsewhere.has(id)));
+    data.items.filter((i) => orphaned.has(i.id)).forEach((i) => entries.push([COL.items, i.id]));
+  }
   entries.push([COL.tables, tableId]);
   await deleteMany(entries as never);
 }
