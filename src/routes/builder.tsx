@@ -48,6 +48,8 @@ function BuilderPage() {
   const [tableId, setTableId] = useState<string | null>(null);
   const [rowDraft, setRowDraft] = useState("");
   const [colDraft, setColDraft] = useState("");
+  const [linkFrom, setLinkFrom] = useState("");
+  const [linkTo, setLinkTo] = useState("");
 
   const sortedTables = useMemo(() => [...tables].sort(bySortOrder), [tables]);
   const current = sortedTables.find((tb) => tb.id === (tableId ?? sortedTables[0]?.id)) ?? null;
@@ -118,6 +120,47 @@ function BuilderPage() {
       }
       await deleteRecord(kind === "row" ? COL.rows : COL.columns, id);
       toast.success(t("builder.deleted"));
+    } catch {
+      toast.error(t("builder.failed"));
+    }
+  }
+
+  const cellOptions = useMemo(
+    () =>
+      tableRows.flatMap((r) =>
+        tableColumns.map((c) => ({ key: `${r.id}:${c.id}`, label: `${r.name} / ${c.name}` })),
+      ),
+    [tableRows, tableColumns],
+  );
+  const cellLinks = current?.cellLinks ?? [];
+  const labelFor = (key: string) => cellOptions.find((o) => o.key === key)?.label ?? key;
+
+  /** Saves a link from the form; the grid draws its arrow as soon as it saves. */
+  async function saveLink() {
+    if (!current) return;
+    if (!linkFrom || !linkTo || linkFrom === linkTo) {
+      toast.error(t("builder.pickCells"));
+      return;
+    }
+    try {
+      await updateRecord(COL.tables, current.id, {
+        cellLinks: [...cellLinks, { id: `${Date.now()}`, from: linkFrom, to: linkTo }],
+      } as never);
+      setLinkFrom("");
+      setLinkTo("");
+      toast.success(t("builder.linkSaved"));
+    } catch {
+      toast.error(t("builder.failed"));
+    }
+  }
+
+  async function removeLink(id: string) {
+    if (!current) return;
+    try {
+      await updateRecord(COL.tables, current.id, {
+        cellLinks: cellLinks.filter((l) => l.id !== id),
+      } as never);
+      toast.success(t("builder.linkRemoved"));
     } catch {
       toast.error(t("builder.failed"));
     }
@@ -219,6 +262,57 @@ function BuilderPage() {
                   onRemove={(id, name) => void remove("column", id, name)}
                 />
               </div>
+
+              <section className="mt-6 rounded-xl border border-border bg-card p-4">
+                <h2 className="text-sm font-semibold">{t("builder.links")}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{t("builder.linksHint")}</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                  <select
+                    aria-label={t("builder.linkFrom")}
+                    className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm"
+                    value={linkFrom}
+                    onChange={(e) => setLinkFrom(e.target.value)}
+                  >
+                    <option value="">{t("builder.linkFrom")}</option>
+                    {cellOptions.map((o) => (
+                      <option key={o.key} value={o.key}>{o.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label={t("builder.linkTo")}
+                    className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm"
+                    value={linkTo}
+                    onChange={(e) => setLinkTo(e.target.value)}
+                  >
+                    <option value="">{t("builder.linkTo")}</option>
+                    {cellOptions.map((o) => (
+                      <option key={o.key} value={o.key}>{o.label}</option>
+                    ))}
+                  </select>
+                  <Button className="h-10" onClick={() => void saveLink()}>
+                    <Plus /> {t("builder.saveLink")}
+                  </Button>
+                </div>
+                <ul className="mt-3 space-y-2">
+                  {cellLinks.length ? (
+                    cellLinks.map((l) => (
+                      <li
+                        key={l.id}
+                        className="flex items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm"
+                      >
+                        <span className="min-w-0 flex-1 break-words">
+                          {labelFor(l.from)} → {labelFor(l.to)}
+                        </span>
+                        <Button variant="ghost" size="icon" onClick={() => void removeLink(l.id)}>
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-xs text-muted-foreground">{t("builder.noLinks")}</li>
+                  )}
+                </ul>
+              </section>
 
               <section className="mt-6 rounded-xl border border-border bg-card p-4">
                 <h2 className="text-sm font-semibold">{t("builder.matrix")}</h2>
