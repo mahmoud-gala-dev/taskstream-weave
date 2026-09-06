@@ -162,7 +162,7 @@ export async function updateRecord<T extends Base>(
 
   if (localIndex >= 0 || id.startsWith("local_") || id.startsWith("guest_")) {
     if (localIndex >= 0) {
-      const existing = localRows[localIndex];
+      const existing = localRows[localIndex]!;
       const updated = {
         ...existing,
         ...data,
@@ -182,7 +182,7 @@ export async function updateRecord<T extends Base>(
   } catch {
     // If not in firestore, check local rows
     if (localIndex >= 0) {
-      const existing = localRows[localIndex];
+      const existing = localRows[localIndex]!;
       localRows[localIndex] = { ...existing, ...data, updatedAt: now } as T;
       writeLocalCollection(name, localRows);
       notifyLocalListeners(name, existing.userId);
@@ -197,7 +197,7 @@ export async function deleteRecord(name: CollectionName, id: string): Promise<vo
 
   if (localIndex >= 0 || id.startsWith("local_") || id.startsWith("guest_")) {
     if (localIndex >= 0) {
-      const [removed] = localRows.splice(localIndex, 1);
+      const removed = localRows.splice(localIndex, 1)[0]!;
       writeLocalCollection(name, localRows);
       notifyLocalListeners(name, removed.userId);
     }
@@ -210,7 +210,7 @@ export async function deleteRecord(name: CollectionName, id: string): Promise<vo
     await deleteDoc(doc(db, name, id));
   } catch {
     if (localIndex >= 0) {
-      const [removed] = localRows.splice(localIndex, 1);
+      const removed = localRows.splice(localIndex, 1)[0]!;
       writeLocalCollection(name, localRows);
       notifyLocalListeners(name, removed.userId);
     }
@@ -284,7 +284,7 @@ export async function updateMany(
       const rows = readLocalCollection(name);
       const idx = rows.findIndex((r) => r.id === id);
       if (idx >= 0) {
-        rows[idx] = { ...rows[idx], ...data, updatedAt: now };
+        rows[idx] = { ...rows[idx]!, ...data, updatedAt: now };
         writeLocalCollection(name, rows);
         touchedCollections.add(name);
       }
