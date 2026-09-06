@@ -2081,9 +2081,15 @@ function CellNote({
             >
               <GripVertical className="mt-0.5 size-3.5 shrink-0 text-amber-600/60 group-hover/notedrag:text-amber-700 dark:group-hover/notedrag:text-amber-400 transition-colors" aria-hidden />
               <StickyNote className="mt-px size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-              <span className="line-clamp-3 whitespace-pre-wrap break-words flex-1 text-foreground/90 font-normal">
+              <span
+                className={cn(
+                  "line-clamp-6 min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-foreground/90 font-normal",
+                  fitText(note),
+                )}
+              >
                 {note}
               </span>
+
             </div>
           ) : null}
           {noteImage ? (
